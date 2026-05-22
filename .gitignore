@@ -216,3 +216,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── DigiHealth pipeline artifacts ─────────────────────────────
+# De-identified patient data is never committed to this repository.
+datasets/
+
+# Generated pipeline outputs, split caches, and logs.
+outputs/
+logs/
+
+# Deployment model artifacts and registries.
+deployment/models/
+deployment/models_no_year/
+deployment/model_registry*.json
+deployment/deployment_metrics*.csv
+
+# Data and serialized-model blobs.
+*.pkl
+*.joblib
