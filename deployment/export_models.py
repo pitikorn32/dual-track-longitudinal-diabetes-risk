@@ -40,15 +40,19 @@ Trains the same 30 configurations with Year, Year_centered and Year_centered_sq
 excluded. Outputs to models_no_year/, model_registry_no_year.json,
 deployment_metrics_no_year.csv. Powers the API's /no_year/* route tree.
 
-Optional logistic-only screening variant:
+Optional logistic-only variant:
     python export_models.py --logistic-only
     python export_models.py --logistic-only --no-year
 
-Trains 15 screening-track artifacts using logistic regression at every
-horizon (intervention track is skipped). Outputs to models_logistic_only/
-or models_logistic_only_no_year/. Powers the API's /logistic_only/predict
-and /logistic_only/no_year/predict routes. Frontend-driven: a uniform
-single-family screening output for easier client-side post-processing.
+Trains 30 artifacts per invocation: 15 screening-track artifacts using
+sklearn logistic regression at every horizon, plus 15 intervention-track
+artifacts using monotonic-constrained logistic regression (sign bounds on
+coefficients) at every horizon. Outputs to models_logistic_only/ or
+models_logistic_only_no_year/. Powers the API's /logistic_only/predict,
+/logistic_only/predict/interventions, and matching /no_year/* routes.
+Frontend-driven: a uniform single-family stack for easier client-side
+post-processing while preserving the directional-safety guarantee on the
+intervention track via the monotonic constraints.
 """
 
 from __future__ import annotations
@@ -64,7 +68,7 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-from scipy import special
+from scipy import optimize, special
 from sklearn.linear_model import LogisticRegression
 
 import modeling
@@ -142,6 +146,11 @@ INTERVENTION_FAMILY = {
     4: "catboost",
     5: "catboost",
 }
+
+# Logistic-only intervention track: monotonic-constrained logistic at every
+# horizon. Same coefficient sign rules as the tree-based monotonic families,
+# applied as box bounds during L-BFGS-B refit.
+INTERVENTION_LOGISTIC_ONLY_FAMILY = {n: "monotonic_logistic" for n in HORIZONS}
 
 TRACK_SCREENING = "screening"
 TRACK_INTERVENTION = "intervention"
@@ -312,6 +321,117 @@ def predict_logistic(artifact: dict[str, Any], df: pd.DataFrame) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
+# Monotonic logistic — coefficient sign constraints enforced via L-BFGS-B
+# box bounds. Inference path is identical to predict_logistic; only the fit
+# differs. Mirrors digihealth_risk/phase_5/train_monotonic_logistic.py.
+# ---------------------------------------------------------------------------
+
+def _negative_log_likelihood(
+    beta: np.ndarray, x: np.ndarray, y: np.ndarray
+) -> tuple[float, np.ndarray]:
+    """Ridge-regularized binary NLL with gradient. Intercept is unpenalised."""
+    eta = x @ beta
+    nll = float(np.sum(np.logaddexp(0.0, eta) - y * eta))
+    probability = special.expit(eta)
+    gradient = x.T @ (probability - y)
+
+    beta_penalty = beta.copy()
+    beta_penalty[0] = 0.0
+    nll += 0.5 * RIDGE_ALPHA * float(np.dot(beta_penalty, beta_penalty))
+    gradient += RIDGE_ALPHA * beta_penalty
+    return nll, gradient
+
+
+def _coefficient_bounds(constraints: tuple[int, ...]) -> list[tuple[float | None, float | None]]:
+    """Translate monotone sign constraints into L-BFGS-B box bounds.
+
+    +1  → coefficient must be >= 0 (risk-increasing direction enforced)
+    -1  → coefficient must be <= 0 (protective direction enforced)
+     0  → unconstrained
+    Intercept (first slot) is always unconstrained.
+    """
+    bounds: list[tuple[float | None, float | None]] = [(None, None)]
+    for sign in constraints:
+        if sign == 0:
+            bounds.append((None, None))
+        elif sign == 1:
+            bounds.append((0.0, None))
+        else:
+            bounds.append((None, 0.0))
+    return bounds
+
+
+def fit_monotonic_logistic_artifact(
+    train_df: pd.DataFrame, *, history_years: int
+) -> dict[str, Any]:
+    numeric_features, categorical_features = get_feature_columns(train_df)
+    feature_columns = numeric_features + categorical_features
+    preprocessor = make_preprocessor(numeric_features, categorical_features)
+    x_raw = preprocessor.fit_transform(train_df[feature_columns].copy()).astype(float)
+    transformed_names = [str(n) for n in preprocessor.get_feature_names_out()]
+
+    mean_ = x_raw.mean(axis=0)
+    scale_ = x_raw.std(axis=0)
+    scale_[scale_ == 0.0] = 1.0
+    x_scaled = (x_raw - mean_) / scale_
+
+    y_train = train_df["Target_AtRisk_Status"].astype(int).to_numpy()
+    constraints = monotone_constraints(transformed_names, history_years)
+    bounds = _coefficient_bounds(constraints)
+
+    # Warm start: fit unconstrained sklearn logistic, then refit with bounds.
+    base_model = LogisticRegression(
+        C=max(1.0 / RIDGE_ALPHA, 1e-6),
+        solver="lbfgs",
+        fit_intercept=True,
+        max_iter=2000,
+        random_state=RANDOM_SEED,
+    )
+    base_model.fit(x_scaled, y_train)
+    initial = np.concatenate(
+        [np.atleast_1d(base_model.intercept_).astype(float),
+         np.ravel(base_model.coef_).astype(float)]
+    )
+
+    # Project warm start into the feasible region before re-optimising.
+    clipped = [initial[0]]
+    for value, (lo, hi) in zip(initial[1:], bounds[1:], strict=True):
+        v = float(value)
+        if lo is not None:
+            v = max(v, lo)
+        if hi is not None:
+            v = min(v, hi)
+        clipped.append(v)
+    warm_start = np.asarray(clipped, dtype=float)
+
+    x_train = np.hstack([np.ones((x_scaled.shape[0], 1), dtype=float), x_scaled])
+    y_train_f = y_train.astype(float)
+    result = optimize.minimize(
+        fun=lambda beta: _negative_log_likelihood(beta, x_train, y_train_f),
+        x0=warm_start,
+        jac=True,
+        method="L-BFGS-B",
+        bounds=bounds,
+        options={"maxiter": 5000, "ftol": 1e-8, "maxls": 100},
+    )
+    if not result.success:
+        raise RuntimeError(f"Monotonic logistic optimization failed: {result.message}")
+
+    return {
+        "preprocessor": preprocessor,
+        "model": None,
+        "feature_columns": feature_columns,
+        "numeric_features": numeric_features,
+        "categorical_features": categorical_features,
+        "transformed_feature_names": transformed_names,
+        "monotone_constraints": constraints,
+        "mean_": mean_,
+        "scale_": scale_,
+        "coefficients": result.x,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Generic tree/EBM fit / predict
 # ---------------------------------------------------------------------------
 
@@ -361,7 +481,7 @@ def predict_estimator(artifact: dict[str, Any], df: pd.DataFrame) -> np.ndarray:
 
 
 def predict(artifact: dict[str, Any], df: pd.DataFrame) -> np.ndarray:
-    if artifact["model_family"] == "logistic":
+    if artifact["model_family"] in ("logistic", "monotonic_logistic"):
         return predict_logistic(artifact, df)
     return predict_estimator(artifact, df)
 
@@ -438,6 +558,8 @@ def fit_and_save(track: str, horizon: int, history: int) -> tuple[pd.DataFrame, 
 
     if family == "logistic":
         artifact = fit_logistic_artifact(train_df)
+    elif family == "monotonic_logistic":
+        artifact = fit_monotonic_logistic_artifact(train_df, history_years=history)
     else:
         artifact = fit_estimator_artifact(
             train_df,
@@ -521,10 +643,11 @@ def parse_args() -> argparse.Namespace:
         "--logistic-only",
         action="store_true",
         help=(
-            "Train only the screening track using logistic regression at every "
-            "horizon (intervention track is skipped). Outputs 15 artifacts to "
-            "models_logistic_only/ (or models_logistic_only_no_year/ when "
-            "combined with --no-year). Powers the API's /logistic_only/* "
+            "Train a uniform logistic stack: 15 screening artifacts using "
+            "sklearn logistic regression at every horizon plus 15 intervention "
+            "artifacts using monotonic-constrained logistic. Outputs 30 "
+            "artifacts to models_logistic_only/ (or models_logistic_only_no_year/ "
+            "when combined with --no-year). Powers the API's /logistic_only/* "
             "route tree. Frontend-driven uniform-family alternative."
         ),
     )
@@ -533,7 +656,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    global MODEL_DIR, SCREENING_FAMILY  # type: ignore[misc]
+    global MODEL_DIR, SCREENING_FAMILY, INTERVENTION_FAMILY  # type: ignore[misc]
     model_dir, registry_path, metrics_path = output_paths(args.no_year, args.logistic_only)
     MODEL_DIR = model_dir
 
@@ -544,10 +667,10 @@ def main() -> None:
     tracks_to_train: tuple[str, ...] = (TRACK_SCREENING, TRACK_INTERVENTION)
     if args.logistic_only:
         SCREENING_FAMILY = {n: "logistic" for n in HORIZONS}
-        tracks_to_train = (TRACK_SCREENING,)
+        INTERVENTION_FAMILY = dict(INTERVENTION_LOGISTIC_ONLY_FAMILY)
         print(
-            "[export_models] logistic-only mode: screening track uses logistic at every "
-            "horizon; intervention track skipped."
+            "[export_models] logistic-only mode: screening uses logistic at every "
+            "horizon; intervention uses monotonic_logistic at every horizon."
         )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -589,6 +712,21 @@ def main() -> None:
                     "N=3 against the mixed-family default in exchange for a "
                     "uniform logistic output that is easier to post-process "
                     "client-side."
+                ),
+            },
+            "intervention": {
+                "purpose": (
+                    "Logistic-only alternative intervention track. Monotonic "
+                    "logistic regression with coefficient sign constraints, so "
+                    "favorable lifestyle changes never raise the predicted risk."
+                ),
+                "family_per_horizon": INTERVENTION_FAMILY,
+                "rationale": (
+                    "Frontend-driven choice. Pairs with the logistic-only "
+                    "screening track so a single family covers both flows. "
+                    "Directional safety is enforced by L-BFGS-B box bounds on "
+                    "the coefficients during fit; inference is the same "
+                    "closed-form sigmoid as the unconstrained logistic."
                 ),
             },
         }

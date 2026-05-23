@@ -18,9 +18,10 @@ model families and preprocessing, but with Year, Year_centered and
 Year_centered_sq excluded from training and inference.
 
 A /logistic_only/* route tree (with a nested /logistic_only/no_year/* tree)
-serves a uniform logistic-regression screening model at every horizon, for
-frontend consumers that want a single-family output for easier client-side
-post-processing. Intervention scoring is not exposed under /logistic_only/*.
+serves a uniform logistic stack at every horizon for frontend consumers that
+want a single-family output. Screening uses sklearn logistic; intervention
+uses monotonic-constrained logistic so favorable lifestyle changes never
+raise the predicted risk.
 
 This is the standalone deployment slice. The model artifacts it serves are
 produced by export_models.py in this folder.
@@ -52,10 +53,12 @@ Endpoints:
     GET  /logistic_only/models
     GET  /logistic_only/models/{key}
     POST /logistic_only/predict
+    POST /logistic_only/predict/interventions
     GET  /logistic_only/no_year/health
     GET  /logistic_only/no_year/models
     GET  /logistic_only/no_year/models/{key}
     POST /logistic_only/no_year/predict
+    POST /logistic_only/no_year/predict/interventions
 """
 
 from __future__ import annotations
@@ -112,6 +115,10 @@ INTERVENTION_FAMILY = {1: "ebm", 2: "catboost", 3: "xgboost", 4: "catboost", 5: 
 # Logistic-only screening track: logistic at every horizon. Frontend-driven.
 LOGISTIC_ONLY_SCREENING_FAMILY = {n: "logistic" for n in (1, 2, 3, 4, 5)}
 
+# Logistic-only intervention track: monotonic-constrained logistic at every
+# horizon. Same coefficient sign rules as the tree-based monotonic families.
+LOGISTIC_ONLY_INTERVENTION_FAMILY = {n: "monotonic_logistic" for n in (1, 2, 3, 4, 5)}
+
 # Loaded at startup. Keyed by model_key (e.g. "screening_catboost_n1_m5").
 _models: dict[str, dict[str, Any]] = {}
 _models_no_year: dict[str, dict[str, Any]] = {}
@@ -163,11 +170,21 @@ def _load_all_models_no_year() -> None:
 
 
 def _expected_keys_logistic_only() -> list[str]:
-    """Screening-only key set: logistic at every horizon, all history windows."""
+    """Both-tracks key set for the logistic-only deployment variants.
+
+    Screening uses sklearn logistic at every horizon; intervention uses
+    monotonic-constrained logistic at every horizon. 5 horizons x 3 history
+    windows x 2 tracks = 30 keys per variant.
+    """
     keys: list[str] = []
-    for history in (1, 3, 5):
-        for horizon in (1, 2, 3, 4, 5):
-            keys.append(f"{TRACK_SCREENING}_logistic_n{horizon}_m{history}")
+    for track, family_map in (
+        (TRACK_SCREENING, LOGISTIC_ONLY_SCREENING_FAMILY),
+        (TRACK_INTERVENTION, LOGISTIC_ONLY_INTERVENTION_FAMILY),
+    ):
+        for history in (1, 3, 5):
+            for horizon in (1, 2, 3, 4, 5):
+                family = family_map[horizon]
+                keys.append(f"{track}_{family}_n{horizon}_m{history}")
     return keys
 
 
@@ -222,10 +239,11 @@ app = FastAPI(
     description=(
         "Thesis-aligned diabetes risk scoring with two complementary tracks: "
         "passive screening (`/predict`) and intervention-safe what-if "
-        "simulation (`/predict/interventions`). A `/logistic_only/predict` "
-        "route (with a nested `/logistic_only/no_year/predict` variant) serves "
-        "a uniform logistic-regression screening output for frontend consumers "
-        "that need a single-family model. Send raw questionnaire + annual "
+        "simulation (`/predict/interventions`). A `/logistic_only/*` route "
+        "tree (with a nested `/logistic_only/no_year/*` variant) serves a "
+        "uniform logistic stack for frontend consumers that need a single-"
+        "family model: sklearn logistic for screening, monotonic-constrained "
+        "logistic for intervention. Send raw questionnaire + annual "
         "measurements — no patient ID needed."
     ),
     version="2.0.0",
@@ -482,9 +500,9 @@ _VARIANT_EXPORT_CMD: dict[str, str] = {
 
 def _get_artifact(track: str, horizon: int, history: int, variant: str = VARIANT_WITH_YEAR) -> dict[str, Any]:
     if variant in (VARIANT_LOGISTIC_ONLY_WITH_YEAR, VARIANT_LOGISTIC_ONLY_NO_YEAR):
-        # Logistic-only variants serve only the screening track; family is
-        # logistic regardless of horizon.
-        family = "logistic"
+        # Logistic-only variants: screening uses logistic; intervention uses
+        # monotonic_logistic (same closed-form sigmoid, sign-constrained fit).
+        family = "logistic" if track == TRACK_SCREENING else "monotonic_logistic"
     else:
         family = _track_family(track, horizon)
     key = f"{track}_{family}_n{horizon}_m{history}"
@@ -513,7 +531,7 @@ def _score(artifact: dict[str, Any], row: pd.DataFrame) -> float:
         )
     x_raw = artifact["preprocessor"].transform(row[artifact["feature_columns"]].copy())
 
-    if artifact["model_family"] == "logistic":
+    if artifact["model_family"] in ("logistic", "monotonic_logistic"):
         x_scaled = (np.asarray(x_raw, dtype=float) - artifact["mean_"]) / artifact["scale_"]
         x = np.hstack([np.ones((x_scaled.shape[0], 1), dtype=float), x_scaled])
         return float(special.expit(x @ artifact["coefficients"])[0])
@@ -832,12 +850,14 @@ def health_logistic_only() -> dict[str, Any]:
         "expected": expected,
         "tracks": {
             "screening": {"family_per_horizon": LOGISTIC_ONLY_SCREENING_FAMILY},
+            "intervention": {"family_per_horizon": LOGISTIC_ONLY_INTERVENTION_FAMILY},
         },
         "rationale": (
-            "Logistic-only screening alternative to /predict. Returns a uniform "
-            "logistic model at every horizon for frontend post-processing. "
-            "Intervention scoring is not exposed on this tree; use "
-            "/predict/interventions for what-if simulation."
+            "Logistic-only alternative to /predict and /predict/interventions. "
+            "Screening uses sklearn logistic at every horizon; intervention uses "
+            "monotonic-constrained logistic (sign bounds on coefficients) so "
+            "favorable presets never raise the predicted risk. Frontend gets a "
+            "uniform family across both flows."
         ),
     }
 
@@ -920,12 +940,14 @@ def health_logistic_only_no_year() -> dict[str, Any]:
         "expected": expected,
         "tracks": {
             "screening": {"family_per_horizon": LOGISTIC_ONLY_SCREENING_FAMILY},
+            "intervention": {"family_per_horizon": LOGISTIC_ONLY_INTERVENTION_FAMILY},
         },
         "rationale": (
-            "Construct-validity variant of /logistic_only/predict. Combines the "
-            "uniform-logistic screening output with the calendar-time-invariant "
-            "year-ablation training. Use when both the frontend post-processing "
-            "constraint and the no-Year construct-validity guarantee are needed."
+            "Construct-validity variant of /logistic_only/*. Combines the "
+            "uniform-logistic stack (screening + monotonic-logistic intervention) "
+            "with the calendar-time-invariant year-ablation training. Use when "
+            "the frontend post-processing constraint and the no-Year construct-"
+            "validity guarantee are both needed."
         ),
     }
 
@@ -996,6 +1018,129 @@ def predict_logistic_only_no_year(req: PredictRequest) -> PredictResponse:
         risk_score=score,
         threshold=round(threshold, 6),
         at_risk_flag=bool(prob >= threshold),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes — /logistic_only/predict/interventions and /no_year mirror
+#
+# Intervention scoring backed by monotonic-constrained logistic regression
+# (coefficient sign bounds enforced during fit). Same closed-form sigmoid
+# prediction path as the unconstrained logistic, same intervention preset
+# definitions, but with the directional-safety guarantee preserved by the
+# sign constraints. Run `python export_models.py --logistic-only` (and
+# `--logistic-only --no-year`) to populate the underlying joblibs.
+# ---------------------------------------------------------------------------
+
+@app.post("/logistic_only/predict/interventions", response_model=InterventionResponse)
+def predict_interventions_logistic_only(req: InterventionRequest) -> InterventionResponse:
+    """Monotonic-logistic intervention — uniform-family what-if simulation."""
+    artifact = _get_artifact(
+        TRACK_INTERVENTION, req.horizon_years, req.history_years,
+        variant=VARIANT_LOGISTIC_ONLY_WITH_YEAR,
+    )
+    presets_store: dict[str, Any] = artifact.get("intervention_presets", {})
+
+    unknown = [p for p in req.presets if p not in presets_store]
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown presets: {unknown}. Available: {list(presets_store.keys())}",
+        )
+
+    row = build_modeling_row(req)
+    row = _engineer_features(row)
+
+    baseline_prob = _score(artifact, row)
+    baseline_score = _risk_score(baseline_prob)
+    threshold = artifact["threshold"]
+    ranges = artifact.get("train_feature_ranges", {})
+
+    scenarios: list[ScenarioResult] = []
+    for preset_name in req.presets:
+        preset_def = presets_store[preset_name]
+        adjusted_row, changed = _apply_preset(row, preset_def, ranges)
+        adj_prob = _score(artifact, adjusted_row)
+        adj_score = _risk_score(adj_prob)
+        scenarios.append(ScenarioResult(
+            preset=preset_name,
+            description=preset_def.get("description", ""),
+            probability=round(adj_prob, 6),
+            risk_score=adj_score,
+            delta_risk_score=round(adj_score - baseline_score, 2),
+            at_risk_flag=bool(adj_prob >= threshold),
+            changed_features=changed,
+        ))
+
+    return InterventionResponse(
+        model_key=artifact["model_key"],
+        track=artifact["track"],
+        model_family=artifact["model_family"],
+        horizon_years=req.horizon_years,
+        history_years=req.history_years,
+        baseline=RiskResult(
+            probability=round(baseline_prob, 6),
+            risk_score=baseline_score,
+            threshold=round(threshold, 6),
+            at_risk_flag=bool(baseline_prob >= threshold),
+        ),
+        scenarios=scenarios,
+    )
+
+
+@app.post("/logistic_only/no_year/predict/interventions", response_model=InterventionResponse)
+def predict_interventions_logistic_only_no_year(req: InterventionRequest) -> InterventionResponse:
+    """Monotonic-logistic intervention, Year features excluded (construct-validity)."""
+    artifact = _get_artifact(
+        TRACK_INTERVENTION, req.horizon_years, req.history_years,
+        variant=VARIANT_LOGISTIC_ONLY_NO_YEAR,
+    )
+    presets_store: dict[str, Any] = artifact.get("intervention_presets", {})
+
+    unknown = [p for p in req.presets if p not in presets_store]
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown presets: {unknown}. Available: {list(presets_store.keys())}",
+        )
+
+    row = build_modeling_row(req)
+    row = _engineer_features_no_year(row)
+
+    baseline_prob = _score(artifact, row)
+    baseline_score = _risk_score(baseline_prob)
+    threshold = artifact["threshold"]
+    ranges = artifact.get("train_feature_ranges", {})
+
+    scenarios: list[ScenarioResult] = []
+    for preset_name in req.presets:
+        preset_def = presets_store[preset_name]
+        adjusted_row, changed = _apply_preset(row, preset_def, ranges, engineer=_engineer_features_no_year)
+        adj_prob = _score(artifact, adjusted_row)
+        adj_score = _risk_score(adj_prob)
+        scenarios.append(ScenarioResult(
+            preset=preset_name,
+            description=preset_def.get("description", ""),
+            probability=round(adj_prob, 6),
+            risk_score=adj_score,
+            delta_risk_score=round(adj_score - baseline_score, 2),
+            at_risk_flag=bool(adj_prob >= threshold),
+            changed_features=changed,
+        ))
+
+    return InterventionResponse(
+        model_key=artifact["model_key"],
+        track=artifact["track"],
+        model_family=artifact["model_family"],
+        horizon_years=req.horizon_years,
+        history_years=req.history_years,
+        baseline=RiskResult(
+            probability=round(baseline_prob, 6),
+            risk_score=baseline_score,
+            threshold=round(threshold, 6),
+            at_risk_flag=bool(baseline_prob >= threshold),
+        ),
+        scenarios=scenarios,
     )
 
 

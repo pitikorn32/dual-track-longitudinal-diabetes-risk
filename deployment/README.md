@@ -48,16 +48,18 @@ Optional construct-validity variant (powers the `/no_year/*` routes):
 python export_models.py --no-year
 ```
 
-Optional logistic-only screening variant (powers the `/logistic_only/*` routes):
+Optional logistic-only variant (powers the `/logistic_only/*` routes):
 
 ```bash
 python export_models.py --logistic-only              # with-Year
 python export_models.py --logistic-only --no-year    # no-Year
 ```
 
-Each `--logistic-only` invocation writes 15 screening-only artifacts that use
-logistic regression at every horizon (intervention track is skipped). Outputs
-go to `models_logistic_only/` or `models_logistic_only_no_year/`.
+Each `--logistic-only` invocation writes **30 artifacts**: 15 screening
+artifacts using sklearn logistic regression at every horizon, plus 15
+intervention artifacts using monotonic-constrained logistic regression at
+every horizon. Outputs go to `models_logistic_only/` or
+`models_logistic_only_no_year/`.
 
 ### Why logistic-only?
 
@@ -66,10 +68,18 @@ N=1, XGBoost at N=3, Logistic at N=2/4/5), which means the response
 `model_family` field varies by horizon. The `/logistic_only/*` route tree was
 added for frontend consumers that want a uniform single-family output for
 easier client-side post-processing (e.g. coefficient-based explanations, linear
-score decomposition). It trades roughly **0.020 PR-AUC at N=1 and N=3** against
-the mixed-family default, and is within ~0.001 at N=2/4/5 (where the default
-already uses Logistic). See `digihealth_risk/phase_8/README.md` for the
-modeling validation.
+score decomposition). Screening trades roughly **0.020 PR-AUC at N=1 and N=3**
+against the mixed-family default and is within ~0.001 at N=2/4/5 (where the
+default already uses Logistic). See `digihealth_risk/phase_8/README.md` for
+the screening validation.
+
+Intervention is also exposed under `/logistic_only/*` via
+**monotonic-constrained logistic regression**: coefficient sign bounds enforced
+at fit time guarantee that any favorable preset (reduce sugar, increase
+exercise, etc.) cannot raise the predicted risk. The closed-form sigmoid
+prediction path is identical to the unconstrained logistic; only the fit
+differs. See `digihealth_risk/phase_5/train_monotonic_logistic.py` for the
+modeling validation of this technique.
 
 ## 2. Run the API
 
@@ -103,7 +113,9 @@ docker run -p 8000:8000 -v "$(pwd)/models:/app/models" digihealth-risk-api
 | POST | `/predict/interventions` | Intervention-safe what-if simulation |
 | GET / POST | `/no_year/*` | The same route tree with Year features excluded |
 | POST | `/logistic_only/predict` | Screening using logistic at every horizon (uniform single-family output) |
+| POST | `/logistic_only/predict/interventions` | Intervention using monotonic-constrained logistic at every horizon |
 | POST | `/logistic_only/no_year/predict` | Logistic-only screening, Year features excluded |
+| POST | `/logistic_only/no_year/predict/interventions` | Monotonic-logistic intervention, Year features excluded |
 | GET | `/logistic_only/health`, `/logistic_only/models`, `/logistic_only/models/{key}` | Logistic-only registry surface |
 | GET | `/logistic_only/no_year/health`, `/logistic_only/no_year/models`, `/logistic_only/no_year/models/{key}` | Logistic-only no-Year registry surface |
 
@@ -111,10 +123,6 @@ The `/no_year/*` routes return 404 until `export_models.py --no-year` has been
 run; the `/logistic_only/*` and `/logistic_only/no_year/*` routes return 404
 until `export_models.py --logistic-only` and `--logistic-only --no-year` have
 been run respectively. `/predict` and `/predict/interventions` work regardless.
-
-Intervention scoring is **not** exposed under `/logistic_only/*`; use
-`/predict/interventions` (or `/no_year/predict/interventions`) for what-if
-simulation.
 
 ## Environment variables
 
