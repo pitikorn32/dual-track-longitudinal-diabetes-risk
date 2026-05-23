@@ -4,7 +4,7 @@ End-to-end modeling pipeline for:
 **"Longitudinal Diabetes Risk Prediction from 12-Year Thai Healthcare Data"**
 (6,892 patients, 2005-2016, Thai NHES cohort)
 
-This package is the production fork of the thesis `experiments_v2` tree. It
+This package is the production fork of the thesis research pipeline. It
 contains the curated v2 (feature-engineered) scripts for every phase, 0 through
 7. The standalone serving slice lives in the sibling `deployment/` folder; see
 the repository-root `README.md` for the overall layout.
@@ -137,7 +137,7 @@ Secondary metrics: ROC-AUC, Brier score.
 
 ## Scope of this fork
 
-This pipeline is forked from the thesis `experiments_v2` tree. The thesis
+This pipeline is forked from the thesis research repository. The thesis
 figure-generation scripts (`figures/`) are not included; every phase script
 that produces a modeling result is. The original research repository retains
 the full v1 development history.

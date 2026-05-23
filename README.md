@@ -1,9 +1,8 @@
 # longitudinal-diabetes-risk
 
 Production implementation of a longitudinal diabetes-risk prediction model,
-forked from the `experiments_v2` thesis tree of the DigiHealth 2025-IS research
-project. It predicts diabetes risk from 12-year Thai healthcare data (6,892
-patients, 2005-2016).
+forked from the DigiHealth 2025-IS research project. It predicts diabetes
+risk from 12-year Thai healthcare data (6,892 patients, 2005-2016).
 
 ## Layout
 
@@ -74,6 +73,6 @@ Interactive API docs: http://localhost:8000/docs
 
 ## Provenance
 
-Forked from `experiments_v2` of the DigiHealth 2025-IS repository. The thesis
+Forked from the DigiHealth 2025-IS research repository. The thesis
 figure-generation scripts are not included; every phase script that produces a
 modeling result is.
