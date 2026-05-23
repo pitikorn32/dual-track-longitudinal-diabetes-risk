@@ -11,7 +11,7 @@ patients, 2005-2016).
 longitudinal-diabetes-risk/
 ├─ digihealth_risk/    modeling pipeline, phases 0-7 (training + research)
 ├─ deployment/         standalone dual-track FastAPI serving slice
-├─ run_all.sh          runs the full phase pipeline in dependency order
+├─ reproduce.sh        runs the full phase pipeline in dependency order
 └─ requirements.txt    pinned dependencies for the phase pipeline
 ```
 
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Option A: run the entire phase pipeline (training and research, takes hours).
 
 ```bash
-bash run_all.sh
+bash reproduce.sh
 ```
 
 Option B: build only the 15 modeling tables the deployment export needs.

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ============================================================
-# run_all.sh  (longitudinal-diabetes-risk repository root)
+# reproduce.sh  (longitudinal-diabetes-risk repository root)
 #
 # Runs every thesis experiment phase in dependency order.
 # Must be executed from the repository root:
 #
-#   bash run_all.sh [options]
+#   bash reproduce.sh [options]
 #
 # Options:
 #   --from-phase N   Start from phase N (1-7).  Skips earlier phases.
