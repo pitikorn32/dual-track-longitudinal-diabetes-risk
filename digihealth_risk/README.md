@@ -31,7 +31,7 @@ All commands must be run from the **repository root** (`longitudinal-diabetes-ri
 | Step | Phase | Script(s) | Key output | Thesis section |
 |------|-------|-----------|------------|----------------|
 | 1 | phase_0 | `build_modeling_tables.py` | 15 modeling tables | §3, §4.4.1 |
-| 1a | phase_0_appendix | `eda_depth.py` | Feature-engineering evidence | §3.4.2 |
+| 1a | phase_0 | `eda_depth.py` | Feature-engineering evidence | §3.4.2 |
 | 2 | phase_1 | `gee_horizon_grid.py` | GEE predictions per N/M | §4.1.1 |
 | 2 | phase_1 | `logistic_horizon_grid.py` | Logistic predictions per N/M | §4.1.1 |
 | 2 | phase_1 | `glmm_exploratory.py` | GLMM (exploratory only) | §4.1.1 |

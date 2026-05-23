@@ -4,7 +4,7 @@ Reads:
   - patient_year_long.pkl      (82,704 rows × 29 cols, censored at first event)
   - phase_0_modeling_table.pkl (41,930 rows × 35 cols, horizon=1, history=1)
 
-Outputs (digihealth_risk/phase_0_appendix/outputs/):
+Outputs (digihealth_risk/phase_0/outputs/):
   phase_0_2_univariate_stats.csv
   phase_0_2_temporal_trends.csv
   phase_0_2_autocorrelation.csv
@@ -20,7 +20,7 @@ Outputs (digihealth_risk/phase_0_appendix/outputs/):
   phase_0_2_report.md
 
 Run from the repository root:
-    python digihealth_risk/phase_0_appendix/eda_depth.py
+    python digihealth_risk/phase_0/eda_depth.py
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ sys.path.insert(0, str(ROOT))
 
 LONG_PATH  = ROOT / "digihealth_risk" / "phase_0" / "outputs" / "patient_year_long.pkl"
 MODEL_PATH = ROOT / "digihealth_risk" / "phase_0" / "outputs" / "phase_0_modeling_table.pkl"
-OUT_DIR    = ROOT / "digihealth_risk" / "phase_0_appendix" / "outputs"
+OUT_DIR    = ROOT / "digihealth_risk" / "phase_0" / "outputs"
 
 RANDOM_SEED = 20260501
 MAX_SHAPIRO_N = 5_000

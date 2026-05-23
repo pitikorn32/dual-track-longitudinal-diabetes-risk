@@ -44,3 +44,26 @@ Also produces: `patient_year_long.pkl`, `phase_0_eda_report.md`, CSV samples.
 
 ## Expected runtime
 ~2 min per table on a standard laptop; ~30 min for the full 15-table grid.
+
+## Extended depth EDA (optional)
+
+`eda_depth.py` is an optional analysis script, not part of the build path:
+nothing downstream consumes its outputs. It produces the statistical evidence
+behind the v2 feature-engineering choices, supporting thesis Section 3.4.2.
+
+### Run
+
+```bash
+python digihealth_risk/phase_0/eda_depth.py
+```
+
+Requires Step 1 above (`patient_year_long.pkl` and `phase_0_modeling_table.pkl`).
+
+| File | Key finding |
+|------|-------------|
+| `phase_0_2_vif.csv` | VIF=225 for `pulse_pressure`, removed in v2 |
+| `phase_0_2_ljung_box.csv` | Ljung-Box p=0.03 for `Year_centered`, `Year_centered_sq` added |
+| `phase_0_2_cross_lagged_correlation.csv` | `MAX_FBS_x_Age` cross-lag r=0.582, interaction added |
+| `phase_0_2_report.md` | Full summary |
+
+Runtime: roughly 5-10 min.

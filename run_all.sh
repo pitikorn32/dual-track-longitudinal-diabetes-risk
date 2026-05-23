@@ -187,8 +187,8 @@ fi
 if [[ "$FROM_PHASE" -le 0 ]]; then
     _phase_header "0a" "Appendix EDA — feature-engineering evidence"
 
-    _run "phase_0_appendix  eda_depth" \
-        python digihealth_risk/phase_0_appendix/eda_depth.py
+    _run "phase_0  eda_depth" \
+        python digihealth_risk/phase_0/eda_depth.py
 fi
 
 # ═══════════════════════════════════════════════════════════
