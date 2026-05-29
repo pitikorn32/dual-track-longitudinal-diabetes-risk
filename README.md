@@ -1,8 +1,8 @@
 # longitudinal-diabetes-risk
 
-Production implementation of a longitudinal diabetes-risk prediction model,
-forked from the DigiHealth 2025-IS research project. It predicts diabetes
-risk from 12-year Thai healthcare data (6,892 patients, 2005-2016).
+Production implementation of a longitudinal diabetes-risk prediction model that
+predicts diabetes risk from 12-year Thai healthcare data (6,892 patients,
+2005-2016).
 
 ## Layout
 
@@ -71,8 +71,15 @@ Interactive API docs: http://localhost:8000/docs
 - **Primary metric**: PR-AUC (handles class imbalance). Secondary: ROC-AUC,
   Brier score.
 
-## Provenance
+## Thesis
 
-Forked from the DigiHealth 2025-IS research repository. The thesis
-figure-generation scripts are not included; every phase script that produces a
-modeling result is.
+This pipeline accompanies the thesis *Longitudinal Diabetes Risk Prediction from
+12-Year Thai Healthcare Data*. Full methodology and results, including the
+section numbers cited throughout these READMEs, are in the thesis PDF:
+
+[Thesis PDF](THESIS_PDF_URL)
+
+<!-- TODO: replace THESIS_PDF_URL above with the public link to the thesis PDF -->
+
+The thesis figure-generation scripts are not included; every phase script that
+produces a modeling result is.
