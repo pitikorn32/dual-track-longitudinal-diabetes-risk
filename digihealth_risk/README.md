@@ -18,7 +18,7 @@ the repository-root `README.md` for the overall layout.
 pip install pandas numpy scikit-learn xgboost lightgbm catboost statsmodels \
             joblib fastapi uvicorn interpret
 
-# Required data file (not committed — place in repo root)
+# Required data file (not committed, place in repo root)
 datasets/df_final.pkl    # 5.6 MB, 6,892 patients, 121 columns
 ```
 
@@ -48,7 +48,7 @@ All commands must be run from the **repository root** (`longitudinal-diabetes-ri
 | 7 | phase_6 | `export_models.py` + `api.py` | REST API (15 models) | §7 |
 
 Phase 0a (appendix EDA) can be run any time after Phase 0 Step 1.
-Steps 2, 3, 4 can be run in any order — all depend only on Phase 0 outputs.
+Steps 2, 3, 4 can be run in any order; all depend only on Phase 0 outputs.
 Step 5 depends on Steps 2, 3, and 4.
 Step 6 depends on Step 5.
 
@@ -128,7 +128,7 @@ train_df, cal_df, test_df = apply_canonical_split(df, return_calibration=True)
 ---
 
 ## Primary metric
-**PR-AUC** (precision-recall area under curve) — handles class imbalance and
+**PR-AUC** (precision-recall area under curve): handles class imbalance and
 prioritises detection of the at-risk minority class.
 
 Secondary metrics: ROC-AUC, Brier score.

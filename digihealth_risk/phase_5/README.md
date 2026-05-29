@@ -1,4 +1,4 @@
-# Phase 5 — Intervention-Safe Models (Monotonic Constraints)
+# Phase 5: Intervention-Safe Models (Monotonic Constraints)
 
 ## Thesis reference
 Section 4.3 (Intervention-Safe Risk Scoring), Section 5.4 (Intervention-Safe
@@ -23,12 +23,12 @@ never increase predicted risk. All five families are benchmarked together in
 | `intervention_scenarios.py` | Per-patient what-if scenario scoring |
 
 ## Prerequisites
-- `digihealth_risk/phase_0/outputs/` — modeling tables (Phase 0)
+- `digihealth_risk/phase_0/outputs/`: modeling tables (Phase 0)
 - `digihealth_risk/phase_4/outputs/phase_4_2_v2_cross_family_ranking.csv` (Phase 4 Step 3)
 
 ## Step-by-step
 
-### Step 1 — Train all five monotonic families
+### Step 1: Train all five monotonic families
 ```bash
 python digihealth_risk/phase_5/train_monotonic_xgboost.py
 python digihealth_risk/phase_5/train_monotonic_catboost.py
@@ -37,12 +37,12 @@ python digihealth_risk/phase_5/train_monotonic_ebm.py
 python digihealth_risk/phase_5/train_monotonic_logistic.py
 ```
 
-### Step 2 — Consolidated benchmark
+### Step 2: Consolidated benchmark
 ```bash
 python digihealth_risk/phase_5/intervention_benchmark.py
 ```
 
-### Step 3 — Per-patient scenario scoring (optional demo)
+### Step 3: Per-patient scenario scoring (optional demo)
 ```bash
 python digihealth_risk/phase_5/intervention_scenarios.py \
   --patient-id "76562/29" --horizons 1 3 5

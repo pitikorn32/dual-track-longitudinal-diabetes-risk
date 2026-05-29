@@ -1,4 +1,4 @@
-# Phase 2 — Tree-Based Models
+# Phase 2: Tree-Based Models
 
 ## Thesis reference
 Section 4.1.2 (Tree-Based Models), Section 5.1 (Pure Prediction Results),
@@ -24,7 +24,7 @@ longitudinal trends) and a full N×M horizon/history grid search.
 
 ## Step-by-step
 
-### Step 1 — Standard tree models (N=1, M=1 default)
+### Step 1: Standard tree models (N=1, M=1 default)
 ```bash
 python digihealth_risk/phase_2/train_tree_models.py
 ```
@@ -34,14 +34,14 @@ python digihealth_risk/phase_2/train_tree_models.py \
   --input-path digihealth_risk/phase_0/outputs/phase_0_modeling_table_horizon_3_history_5.pkl
 ```
 
-### Step 2 — Slope-feature hybrid
+### Step 2: Slope-feature hybrid
 ```bash
 python digihealth_risk/phase_2/lmm_slope_features.py
 python digihealth_risk/phase_2/train_tree_models.py \
   --input-path digihealth_risk/phase_2/outputs/phase_2_v2_modeling_table_with_slopes.pkl
 ```
 
-### Step 3 — Horizon/history grid (XGBoost + CatBoost)
+### Step 3: Horizon/history grid (XGBoost + CatBoost)
 ```bash
 python digihealth_risk/phase_2/horizon_history_grid.py
 ```

@@ -1,4 +1,4 @@
-# Phase 7 — Year-features Ablation
+# Phase 7: Year-features Ablation
 
 ## What this ablation does
 
@@ -9,9 +9,9 @@ removed from the training set:
 - `Year_centered`
 - `Year_centered_sq`
 
-All other features — including patient-relative time signals (`Age`,
+All other features, including patient-relative time signals (`Age`,
 `years_since_last_fbs`, `has_fbs_this_year`, `is_missing_last_year`) and
-rolling history-window slopes — are retained.
+rolling history-window slopes, are retained.
 
 The goal is to quantify how much the calendar-time features contribute to
 in-sample predictive performance, and thereby inform whether they should be
@@ -92,7 +92,7 @@ All written under `digihealth_risk/phase_7/outputs/`:
 - For Brier: positive Δ = dropping Year hurt (lower Brier is better).
 
 If |Δ PR-AUC| < 0.005 across the grid, the Year features were doing very
-little — the deployment-time fix is essentially free. If Δ is systematically
+little: the deployment-time fix is essentially free. If Δ is systematically
 negative, the in-sample temporal-drift adjustment was load-bearing, and the
 thesis needs to weigh that against the construct-validity argument in §6.
 

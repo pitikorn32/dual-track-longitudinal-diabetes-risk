@@ -1,10 +1,9 @@
-# Phase 6 — Deployment (FastAPI, dual-track)
+# Phase 6: Deployment (FastAPI, dual-track)
 
 ## Thesis reference
-Implements the dual-output deployment architecture argued in
-`docs/thesis/06_DISCUSSION.md` §6.4 and `07_CONCLUSION_AND_FUTURE_WORK.md`
-§7.1 — two complementary risk-scoring tracks built on a common
-data-engineering foundation.
+Implements the dual-output deployment architecture argued in the thesis
+Discussion (§6.4) and Conclusion (§7.1): two complementary risk-scoring
+tracks built on a common data-engineering foundation.
 
 ## Purpose
 Exports 30 model artifacts and serves them via a stateless FastAPI:
@@ -29,7 +28,7 @@ excluded from training and inference:
 | `POST /no_year/predict` | Screening, calendar-time invariant | Phase 7 ablation winners |
 | `POST /no_year/predict/interventions` | Intervention, calendar-time invariant | Phase 7 ablation monotonic |
 
-The two trees coexist — `/predict` represents the main thesis result and is
+The two trees coexist: `/predict` represents the main thesis result and is
 appropriate when the deployment cohort matches the 2005–2016 training window
 or when retraining on fresh data is feasible. `/no_year/*` is the
 construct-validity alternative for deployments without a retraining
@@ -49,32 +48,32 @@ scored in, at a small documented PR-AUC cost (see
 
 \* Thesis §5.1 screening winner at $N=5$ is GEE (PR-AUC 0.5282). statsmodels
 GEE estimators do not serialize cleanly through joblib, so Logistic
-(PR-AUC 0.5248 — a 0.0034 gap) is substituted for deployability. The
+(PR-AUC 0.5248, a 0.0034 gap) is substituted for deployability. The
 substitution is recorded explicitly in `outputs/model_registry.json`.
 
 All 30 models are trained at history windows $M \in \{1, 3, 5\}$, matching
 the surface area of the old deployment.
 
 ## Prerequisites
-- `digihealth_risk/phase_0/outputs/` — all Phase 0 modeling tables for
+- `digihealth_risk/phase_0/outputs/`: all Phase 0 modeling tables for
   $N \in \{1..5\} \times M \in \{1,3,5\}$ must exist
 - Python deps: `pandas numpy scikit-learn xgboost catboost interpret
   fastapi uvicorn joblib pydantic scipy`
 
 ## Step-by-step
 
-### Step 1 — Export all 30 models
+### Step 1: Export all 30 models
 ```bash
 python digihealth_risk/phase_6/export_models.py
 ```
 Writes:
-- `outputs/models/{track}_{family}_n{N}_m{M}.joblib` — 30 artifacts
-- `outputs/model_registry.json` — per-model metadata (track, family,
+- `outputs/models/{track}_{family}_n{N}_m{M}.joblib`: 30 artifacts
+- `outputs/model_registry.json`: per-model metadata (track, family,
   horizon, history, threshold, test PR-AUC/ROC-AUC/Brier, intervention
   presets)
-- `outputs/deployment_metrics.csv` — train/test metrics for all 30 fits
+- `outputs/deployment_metrics.csv`: train/test metrics for all 30 fits
 
-### Step 1b (optional) — Export the no-Year variant
+### Step 1b (optional): Export the no-Year variant
 ```bash
 python digihealth_risk/phase_6/export_models.py --no-year
 ```
@@ -87,7 +86,7 @@ Without this step, the `/no_year/*` endpoints will return 404. The main
 `/predict` and `/predict/interventions` endpoints continue to work
 regardless.
 
-### Step 2 — Start the API server
+### Step 2: Start the API server
 ```bash
 uvicorn digihealth_risk.phase_6.api:app --reload --port 8000
 ```
@@ -106,8 +105,8 @@ Interactive docs: http://localhost:8000/docs
 | GET  | `/health` | Verify all 30 models are loaded; reports family-per-horizon for both tracks |
 | GET  | `/models` | List every loaded artifact with track, family, horizon, history, threshold, feature count, presets |
 | GET  | `/models/{key}` | Details for one artifact (e.g. `screening_catboost_n1_m5`, `intervention_ebm_n1_m5`) |
-| POST | `/predict` | Screening track — returns risk score using the pure-prediction winner for the requested horizon |
-| POST | `/predict/interventions` | Intervention track — returns baseline + per-preset scenarios using the monotonic winner |
+| POST | `/predict` | Screening track: returns risk score using the pure-prediction winner for the requested horizon |
+| POST | `/predict/interventions` | Intervention track: returns baseline + per-preset scenarios using the monotonic winner |
 
 ### Construct-validity tree (no-Year, optional)
 
@@ -183,7 +182,7 @@ deployment in this directory replaces it.
   `digihealth_risk/phase_2/train_tree_models.py::engineer_features`.
 - The `/no_year/*` tree uses the same module with
   `digihealth_risk/phase_7/year_ablation_utils.patch_drop_year_features()`
-  applied — `Year`, `Year_centered`, and `Year_centered_sq` are removed at
+  applied: `Year`, `Year_centered`, and `Year_centered_sq` are removed at
   training time and not synthesized at inference. All other engineered
   features (FBS hinges, FBS × Age, MAX_FBS × Age) are identical between
   the two trees.

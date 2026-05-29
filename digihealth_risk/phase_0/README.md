@@ -1,4 +1,4 @@
-# Phase 0 — Data Engineering
+# Phase 0: Data Engineering
 
 ## Thesis reference
 Section 3 (Dataset and Problem Formulation) and Section 4.4.1 (Temporal Grid)
@@ -14,13 +14,13 @@ window M. Downstream phases read these tables as their primary input.
 
 ## Step-by-step
 
-### Step 1 — Default table (N=1, M=1)
+### Step 1: Default table (N=1, M=1)
 ```bash
 python digihealth_risk/phase_0/build_modeling_tables.py
 ```
 Writes: `digihealth_risk/phase_0/outputs/phase_0_modeling_table.pkl`
 
-### Step 2 — Full N×M grid (all 15 combinations)
+### Step 2: Full N×M grid (all 15 combinations)
 ```bash
 for N in 1 2 3 4 5; do
   for M in 1 3 5; do
