@@ -45,7 +45,7 @@ All commands must be run from the **repository root** (`longitudinal-diabetes-ri
 | 5 | phase_4 | `cross_family_comparison.py` | **Final leaderboard** | §5.1 |
 | 6 | phase_5 | `train_monotonic_*.py` (×5) | Monotonic model artifacts | §4.3 |
 | 6 | phase_5 | `intervention_benchmark.py` | Intervention-safe leaderboard | §5.4 |
-| 7 | phase_6 | `export_models.py` + `api.py` | REST API (15 models) | §7 |
+| 7 | phase_6 | `export_models.py` + `api.py` | REST API (30 models) | §6.4 |
 
 Phase 0a (appendix EDA) can be run any time after Phase 0 Step 1.
 Steps 2, 3, 4 can be run in any order; all depend only on Phase 0 outputs.
@@ -56,7 +56,7 @@ Step 6 depends on Step 5.
 
 ## Quick-start: reproduce the final leaderboard
 
-The minimum set of commands to reproduce Table 5.1 (final leaderboard):
+The minimum set of commands to reproduce Table 5.2 (final leaderboard):
 
 ```bash
 # 1. Build all modeling tables

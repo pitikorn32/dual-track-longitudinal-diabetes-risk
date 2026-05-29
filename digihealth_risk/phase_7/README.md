@@ -94,7 +94,7 @@ All written under `digihealth_risk/phase_7/outputs/`:
 If |Δ PR-AUC| < 0.005 across the grid, the Year features were doing very
 little: the deployment-time fix is essentially free. If Δ is systematically
 negative, the in-sample temporal-drift adjustment was load-bearing, and the
-thesis needs to weigh that against the construct-validity argument in §6.
+thesis needs to weigh that against the construct-validity argument in §6.7.
 
 ## Note on deployment
 

@@ -1,7 +1,7 @@
 # Phase 2: Tree-Based Models
 
 ## Thesis reference
-Section 4.1.2 (Tree-Based Models), Section 5.1 (Pure Prediction Results),
+Section 4.1.2 (Tree-Based Models), Section 5.1 (Pure Prediction Performance),
 Section 5.2 (Horizon and History Effects), Section 5.5.2 (Tree Feature Ablation)
 
 ## Purpose
