@@ -1,4 +1,4 @@
-# longitudinal-diabetes-risk
+# dual-track-longitudinal-diabetes-risk
 
 Production implementation of a longitudinal diabetes-risk prediction model that
 predicts diabetes risk from 12-year Thai healthcare data (6,892 patients,
