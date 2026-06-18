@@ -49,6 +49,7 @@ Year features. No phase 2/4/5 scripts are forked or copied.
 | `train_trees_no_year.py` | Phase 2 uncalibrated tree grid (5 models × 5 horizons × 3 history). |
 | `calibrate_trees_no_year.py` | Phase 4 calibrated tree grid (xgboost + catboost × 30 configs × 3 calibrators). |
 | `train_monotonic_no_year.py` | Phase 5 monotonic families (xgboost, catboost, lightgbm, ebm, logistic) × 5 horizons, M = 5. |
+| `logistic_year_ablation.py` | Lightweight Logistic Regression only with-year vs no-Year comparison for service-paper analysis. |
 | `compare_with_baseline.py` | Joins ablation outputs against baseline metrics and writes the report. |
 | `run_all.sh` | Orchestrator. |
 
@@ -66,6 +67,9 @@ python digihealth_risk/phase_7/train_trees_no_year.py
 python digihealth_risk/phase_7/calibrate_trees_no_year.py
 python digihealth_risk/phase_7/train_monotonic_no_year.py
 python digihealth_risk/phase_7/compare_with_baseline.py
+
+# Logistic-only ablation used by the BHI service paper
+python digihealth_risk/phase_7/logistic_year_ablation.py --history-years 5
 ```
 
 ## Outputs
@@ -79,6 +83,9 @@ All written under `digihealth_risk/phase_7/outputs/`:
 | `phase_7_no_year_calibration_metrics.csv` | Phase 4 calibrated metrics, no-Year. |
 | `phase_7_no_year_calibration_final_recommendations.csv` | Best-of recommendations per horizon. |
 | `phase_7_no_year_monotonic_metrics.csv` | Phase 5 monotonic metrics, no-Year. |
+| `phase_7_logistic_year_ablation_history_{M}_comparison.csv` | Logistic-only with-year vs no-Year comparison. |
+| `phase_7_logistic_year_ablation_history_{M}_metrics.csv` | Logistic-only train/test metrics for each variant. |
+| `phase_7_logistic_year_ablation_history_{M}_report.md` | Markdown report for the logistic-only ablation. |
 | `phase_7_compare_*.csv` | Side-by-side baseline vs no-Year deltas. |
 | `phase_7_compare_summary.csv` | Aggregate deltas per comparison group. |
 | `phase_7_year_ablation_report.md` | Final markdown report. |
