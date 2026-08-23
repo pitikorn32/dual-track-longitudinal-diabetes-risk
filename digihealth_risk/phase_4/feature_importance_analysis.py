@@ -20,12 +20,12 @@ One-hot columns are mapped back to their base feature and summed, then each
 model's importances are normalized to shares (sum = 1) so families are compared
 by *rank*, not by incompatible raw scales.
 
-Outputs (written next to this script):
-  feature_importance_by_model.csv   long table: one row per (model, base_feature)
-  feature_importance_consensus.csv  base features ranked by cross-family agreement
+Outputs (written to phase_4/outputs/):
+  phase_4_feature_importance_by_model.csv   long table: one row per (model, base_feature)
+  phase_4_feature_importance_consensus.csv  base features ranked by cross-family agreement
 
 Run from the submodule root:
-    python feature_importance_analysis.py
+    python digihealth_risk/phase_4/feature_importance_analysis.py
 """
 from __future__ import annotations
 
@@ -36,11 +36,12 @@ import numpy as np
 import pandas as pd
 import joblib
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[2]  # submodule root (…/phase_4/<file> -> up 2)
 MODELS_DIR = ROOT / "deployment" / "models"
 PHASE1_DIR = ROOT / "digihealth_risk" / "phase_1" / "outputs"
-OUT_BY_MODEL = ROOT / "feature_importance_by_model.csv"
-OUT_CONSENSUS = ROOT / "feature_importance_consensus.csv"
+OUT_DIR = Path(__file__).resolve().parent / "outputs"
+OUT_BY_MODEL = OUT_DIR / "phase_4_feature_importance_by_model.csv"
+OUT_CONSENSUS = OUT_DIR / "phase_4_feature_importance_consensus.csv"
 TOPK = 10  # "top features" cutoff used for the agreement count
 
 # The pure-prediction leaderboard winner (family) at each horizon, M=5 (Table I).
@@ -164,6 +165,7 @@ def main() -> None:
             ))
 
     long = pd.DataFrame(rows)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     long.to_csv(OUT_BY_MODEL, index=False)
     print(f"Wrote {OUT_BY_MODEL.name}: {len(long)} rows, "
           f"{long['model_key'].nunique()} models, families={sorted(long['family'].unique())}")
