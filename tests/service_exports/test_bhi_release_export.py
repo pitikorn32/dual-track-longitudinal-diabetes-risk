@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -44,3 +45,21 @@ def test_exported_release_reproduces_the_evidence_scorer(tmp_path: Path) -> None
     manifest_text = result.manifest_path.read_text(encoding="utf-8")
     assert "PatientId" not in manifest_text
     assert "bhi-ridge-m5-no-year-test" in manifest_text
+    manifest = json.loads(manifest_text)
+    assert manifest["source"]["git_commit"]
+    assert manifest["runtime_versions"]["numpy"]
+    assert manifest["runtime_versions"]["scikit_learn"]
+    assert {
+        item["horizon_years"]: item["golden_prediction"]
+        for item in manifest["horizons"]
+    } == pytest.approx(
+        {
+            1: 0.013152730258756179,
+            2: 0.030432624427624292,
+            3: 0.058741939670585851,
+            4: 0.083383788869112338,
+            5: 0.11369680661767689,
+        },
+        rel=0.0,
+        abs=1e-15,
+    )

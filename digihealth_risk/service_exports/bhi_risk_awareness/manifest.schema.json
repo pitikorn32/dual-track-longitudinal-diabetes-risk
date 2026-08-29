@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/digihealth/bhi-model-release.schema.json",
+  "title": "BHI baseline model release",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "outcome",
+    "model_family",
+    "ridge_alpha",
+    "sklearn_c",
+    "history_years",
+    "calendar_year_features",
+    "post_hoc_calibration",
+    "split",
+    "source",
+    "runtime_versions",
+    "horizons"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "release_id": {"type": "string", "minLength": 1},
+    "outcome": {"type": "string"},
+    "model_family": {"const": "raw ridge logistic regression"},
+    "ridge_alpha": {"const": 0.01},
+    "sklearn_c": {"const": 100.0},
+    "history_years": {"const": 5},
+    "calendar_year_features": {"const": false},
+    "post_hoc_calibration": {"const": false},
+    "split": {"type": "string"},
+    "source": {"type": "object"},
+    "runtime_versions": {"type": "object"},
+    "horizons": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "horizon_years",
+          "artifact",
+          "artifact_sha256",
+          "feature_columns",
+          "numeric_features",
+          "categorical_features",
+          "categorical_imputation",
+          "categorical_categories",
+          "transformed_feature_names",
+          "fit_rows",
+          "fit_patients",
+          "test_rows",
+          "test_patients",
+          "test_events",
+          "test_metrics",
+          "golden_case",
+          "golden_prediction"
+        ]
+      }
+    }
+  }
+}

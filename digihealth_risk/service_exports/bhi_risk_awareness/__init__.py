@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 
 
@@ -113,6 +115,29 @@ def _configure_sources(phase0_dir: Path, source_data: Path) -> None:
     patient_split.SPLIT_CACHE = phase0_dir / "patient_split.csv"
 
 
+def _source_version() -> dict[str, Any]:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=SUBMODULE_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=SUBMODULE_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return {
+        "repository": "dual-track-longitudinal-diabetes-risk",
+        "git_commit": completed.stdout.strip(),
+        "working_tree_dirty": bool(dirty.stdout.strip()),
+        "exporter": "digihealth_risk.service_exports.bhi_risk_awareness",
+    }
+
+
 def export_release(
     *,
     output_dir: Path,
@@ -158,6 +183,26 @@ def export_release(
 
         reference = legacy_export.predict_logistic(artifact, test)
         metadata = _artifact_metadata(artifact)
+        golden_values = {
+            **dict(
+                zip(
+                    artifact["numeric_features"],
+                    metadata["numeric_imputation"],
+                    strict=True,
+                )
+            ),
+            **dict(
+                zip(
+                    artifact["categorical_features"],
+                    metadata["categorical_imputation"],
+                    strict=True,
+                )
+            ),
+        }
+        golden_frame = pd.DataFrame([golden_values])
+        golden_prediction = float(
+            legacy_export.predict_logistic(artifact, golden_frame)[0]
+        )
         artifact_path = output_dir / f"horizon_{horizon}.npz"
         _write_horizon_artifact(artifact_path, artifact, metadata)
 
@@ -182,6 +227,8 @@ def export_release(
                 "pr_auc": float(average_precision_score(y_test, reference)),
                 "brier": float(brier_score_loss(y_test, reference)),
             },
+            "golden_case": "training numeric medians and categorical modes",
+            "golden_prediction": golden_prediction,
         }
         entries.append(entry)
         paths.append(artifact_path)
@@ -199,6 +246,13 @@ def export_release(
         "calendar_year_features": False,
         "post_hoc_calibration": False,
         "split": "canonical 60/20/20 patient split; train and calibration folded",
+        "source": _source_version(),
+        "runtime_versions": {
+            "python": ".".join(str(part) for part in sys.version_info[:3]),
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+            "scikit_learn": sklearn.__version__,
+        },
         "horizons": entries,
     }
     manifest_path = output_dir / "manifest.json"
