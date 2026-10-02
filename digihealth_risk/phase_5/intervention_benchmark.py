@@ -21,12 +21,16 @@ Run from the repository root:
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from digihealth_risk.phase_5.evaluate_saved_models import METRICS_PATH, SAFETY_PATH
+from digihealth_risk.phase_4.cross_family_comparison import load_shared_predictions, ranking_table
 OUT_DIR = ROOT / "digihealth_risk" / "phase_5" / "outputs"
 PHASE4_RANKING_PATH = ROOT / "digihealth_risk" / "phase_4" / "outputs" / "phase_4_2_v2_cross_family_ranking.csv"
 
@@ -34,36 +38,26 @@ MODEL_SPECS = [
     {
         "family": "xgboost",
         "display_name": "Monotonic XGBoost",
-        "metrics_path": OUT_DIR / "phase_6_v2_ablation_metrics.csv",
-        "safety_path": OUT_DIR / "phase_6_v2_ablation_safety_summary.csv",
         "interpretability_tier": 2,
     },
     {
         "family": "lightgbm",
         "display_name": "Monotonic LightGBM",
-        "metrics_path": OUT_DIR / "phase_6_v2_lightgbm_ablation_metrics.csv",
-        "safety_path": OUT_DIR / "phase_6_v2_lightgbm_ablation_safety_summary.csv",
         "interpretability_tier": 2,
     },
     {
         "family": "catboost",
         "display_name": "Monotonic CatBoost",
-        "metrics_path": OUT_DIR / "phase_6_v2_catboost_ablation_metrics.csv",
-        "safety_path": OUT_DIR / "phase_6_v2_catboost_ablation_safety_summary.csv",
         "interpretability_tier": 2,
     },
     {
         "family": "ebm",
         "display_name": "Monotonic EBM",
-        "metrics_path": OUT_DIR / "phase_6_v2_ebm_ablation_metrics.csv",
-        "safety_path": OUT_DIR / "phase_6_v2_ebm_ablation_safety_summary.csv",
         "interpretability_tier": 1,
     },
     {
         "family": "logistic",
         "display_name": "Monotonic Logistic",
-        "metrics_path": OUT_DIR / "phase_6_v2_logistic_ablation_metrics.csv",
-        "safety_path": OUT_DIR / "phase_6_v2_logistic_ablation_safety_summary.csv",
         "interpretability_tier": 0,
     },
 ]
@@ -76,6 +70,8 @@ REPORT_OUT = OUT_DIR / "phase_6_v2_intervention_model_report.md"
 
 def best_monotonic_rows(metrics_path: Path, family: str, display_name: str, interpretability_tier: int) -> pd.DataFrame:
     df = pd.read_csv(metrics_path)
+    if "family" in df:
+        df = df[df["family"].eq(family)]
     df = df[(df["split"] == "test") & (df["variant"] == "monotonic")].copy()
     best = (
         df.sort_values(["horizon_years", "pr_auc", "roc_auc"], ascending=[True, False, False])
@@ -90,25 +86,25 @@ def best_monotonic_rows(metrics_path: Path, family: str, display_name: str, inte
 
 
 def best_monotonic_safety(safety_path: Path, family: str, display_name: str, interpretability_tier: int) -> pd.DataFrame:
+    """Load safety for every configuration; selection follows prediction identity."""
     df = pd.read_csv(safety_path)
-    df = df[df["variant"] == "monotonic"].copy()
-    best = (
-        df.sort_values(
-            ["horizon_years", "directionally_correct_rate", "unexpected_increase_rate", "mean_delta_score"],
-            ascending=[True, False, True, True],
-        )
-        .groupby("horizon_years", as_index=False)
-        .head(1)
-        .reset_index(drop=True)
-    )
-    best["family"] = family
-    best["display_name"] = display_name
-    best["interpretability_tier"] = interpretability_tier
-    return best
+    df = df[df['variant'].eq('monotonic') & df['family'].eq(family)].copy()
+    df['display_name'] = display_name
+    df['interpretability_tier'] = interpretability_tier
+    return df
 
+
+def attach_safety(prediction: pd.DataFrame, safety: pd.DataFrame) -> pd.DataFrame:
+    keys = ['family', 'horizon_years', 'history_years', 'model_key',
+            'artifact_sha256', 'cohort_sha256', 'scenario_suite', 'tolerance_score_points']
+    chosen = prediction[keys].merge(safety, on=keys, how='left', validate='one_to_one', indicator=True)
+    if not chosen['_merge'].eq('both').all():
+        raise ValueError('Missing safety evidence for the exact prediction artifact and cohort')
+    return chosen.drop(columns='_merge')
 
 def load_phase4_leaders() -> pd.DataFrame:
-    ranking = pd.read_csv(PHASE4_RANKING_PATH)
+    shared, _ = load_shared_predictions()
+    ranking = ranking_table(shared)
     return (
         ranking.sort_values(["horizon_years", "pr_auc", "roc_auc"], ascending=[True, False, False])
         .groupby("horizon_years", as_index=False)
@@ -142,12 +138,14 @@ def markdown_table(df: pd.DataFrame) -> str:
 
 
 def build_comparison_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if not METRICS_PATH.exists() or not SAFETY_PATH.exists():
+        raise FileNotFoundError("Run python digihealth_risk/phase_5/evaluate_saved_models.py first")
     prediction_parts = []
     safety_parts = []
     for spec in MODEL_SPECS:
         prediction_parts.append(
             best_monotonic_rows(
-                spec["metrics_path"],
+                METRICS_PATH,
                 spec["family"],
                 spec["display_name"],
                 spec["interpretability_tier"],
@@ -155,7 +153,7 @@ def build_comparison_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
         )
         safety_parts.append(
             best_monotonic_safety(
-                spec["safety_path"],
+                SAFETY_PATH,
                 spec["family"],
                 spec["display_name"],
                 spec["interpretability_tier"],
@@ -164,6 +162,7 @@ def build_comparison_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
     prediction = pd.concat(prediction_parts, ignore_index=True)
     safety = pd.concat(safety_parts, ignore_index=True)
+    safety = attach_safety(prediction, safety)
     pure_leaders = load_phase4_leaders()
 
     prediction = prediction.merge(
@@ -212,6 +211,7 @@ def build_comparison_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
                 "family",
                 "horizon_years",
                 "safety_history_years",
+                "model_key",
                 "scenario_count",
                 "safety_directionally_correct_rate",
                 "safety_unexpected_increase_rate",
@@ -220,13 +220,16 @@ def build_comparison_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
                 "safety_rank",
             ]
         ],
-        on=["family", "horizon_years"],
+        on=["family", "horizon_years", "model_key"],
         how="left",
+        validate="one_to_one",
     )
 
     summary_rows = []
     for horizon, group in merged.groupby("horizon_years"):
         safe_group = group[group["safety_unexpected_increase_rate"] <= 1e-12].copy()
+        if safe_group.empty:
+            raise ValueError(f"No model passed directional checks at horizon {horizon}; inspect publication_intervention_scenarios.csv")
         best_intervention = safe_group.sort_values(
             ["pr_auc", "roc_auc", "interpretability_tier"],
             ascending=[False, False, True],

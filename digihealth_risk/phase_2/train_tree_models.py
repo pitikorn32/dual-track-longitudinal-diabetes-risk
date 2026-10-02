@@ -100,22 +100,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Add v2 engineered features. Safe to call repeatedly — skips existing columns."""
+    """Refresh clinical derivatives, preserving an established calendar origin."""
     df = df.copy()
     if "Year_centered" not in df.columns:
         df["Year_centered"] = df["Year"] - df["Year"].min()
-    if "Year_centered_sq" not in df.columns:
-        df["Year_centered_sq"] = df["Year_centered"] ** 2
-    if "FBS_hinge_100" not in df.columns:
-        df["FBS_hinge_100"] = (df["FBS"] - 100).clip(lower=0)   # NaN propagates from FBS
-    if "FBS_hinge_125" not in df.columns:
-        df["FBS_hinge_125"] = (df["FBS"] - 125).clip(lower=0)
-    if "FBS_x_Age" not in df.columns:
-        df["FBS_x_Age"] = df["FBS"] * df["Age"]
-    if "MAX_FBS_x_Age" not in df.columns:
-        df["MAX_FBS_x_Age"] = df["MAX_FBS_up_to_year"] * df["Age"]
+    df["Year_centered_sq"] = df["Year_centered"] ** 2
+    df["FBS_hinge_100"] = (df["FBS"] - 100).clip(lower=0)
+    df["FBS_hinge_125"] = (df["FBS"] - 125).clip(lower=0)
+    df["FBS_x_Age"] = df["FBS"] * df["Age"]
+    df["MAX_FBS_x_Age"] = df["MAX_FBS_up_to_year"] * df["Age"]
     return df
-
 
 def slugify_path(path: Path) -> str:
     name = path.stem

@@ -44,8 +44,9 @@ OUT_DIR = ROOT / "digihealth_risk" / "phase_5" / "outputs"
 MODEL_DIR = OUT_DIR / "models_v2"
 HORIZONS = [1, 2, 3, 4, 5]
 HISTORY_YEARS = 5
-SANITY_SAMPLE_SIZE = 5000
-TOLERANCE = 1e-10
+from digihealth_risk.phase_5.monotonic_ablation_utils import (
+    TOLERANCE, scenario_summary, aggregate_safety,
+)
 
 
 @dataclass(frozen=True)
@@ -191,10 +192,10 @@ def apply_policy(df: pd.DataFrame, policy: tuple[str, str, str], train_df: pd.Da
         adjusted[feature] = np.maximum(adjusted[feature], value)
     elif action == "subtract_one":
         minimum = float(train_df[feature].min(skipna=True))
-        adjusted[feature] = np.maximum(adjusted[feature] - 1.0, minimum)
+        adjusted[feature] = np.minimum(df[feature], np.maximum(adjusted[feature] - 1.0, minimum))
     elif action == "add_ten":
         maximum = float(train_df[feature].max(skipna=True))
-        adjusted[feature] = np.minimum(adjusted[feature] + 10.0, maximum)
+        adjusted[feature] = np.maximum(df[feature], np.minimum(adjusted[feature] + 10.0, maximum))
     else:
         raise ValueError(f"Unsupported intervention action: {action}")
 
@@ -204,7 +205,7 @@ def apply_policy(df: pd.DataFrame, policy: tuple[str, str, str], train_df: pd.Da
 
 
 def monotonic_sanity_checks(artifact: dict[str, Any], train_df: pd.DataFrame, test_df: pd.DataFrame, horizon: int) -> pd.DataFrame:
-    sample = test_df.sample(n=min(SANITY_SAMPLE_SIZE, len(test_df)), random_state=RANDOM_SEED)
+    sample = test_df
     baseline = predict_probability(artifact, sample)
     rows = []
 
@@ -215,9 +216,9 @@ def monotonic_sanity_checks(artifact: dict[str, Any], train_df: pd.DataFrame, te
         delta = adjusted_probability - baseline
 
         if expected == "decrease_or_equal":
-            violations = int((delta > TOLERANCE).sum())
+            violations = int((delta * 100 > TOLERANCE).sum())
         elif expected == "increase_or_equal":
-            violations = int((delta < -TOLERANCE).sum())
+            violations = int((delta * 100 < -TOLERANCE).sum())
         else:
             raise ValueError(f"Unsupported expected direction: {expected}")
 
@@ -285,7 +286,6 @@ def run_horizon(horizon: int) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame,
         artifact["monotone_constraints"],
         horizon,
     )
-    sanity = monotonic_sanity_checks(artifact, train_df, test_df, horizon)
 
     artifact.update(
         {
@@ -305,6 +305,10 @@ def run_horizon(horizon: int) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame,
     )
     joblib.dump(artifact, MODEL_DIR / f"phase6_v2_monotonic_xgboost_n{horizon}_m{HISTORY_YEARS}.joblib")
 
+    sanity = scenario_summary(
+        artifact, train_df=train_df, test_df=test_df, horizon=horizon,
+        history_years=HISTORY_YEARS, variant="monotonic",
+    )
     return metrics, predictions, constraints, sanity
 
 
@@ -407,19 +411,8 @@ def main() -> None:
     ablation_metrics.insert(0, "variant", "monotonic")
     ablation_metrics.to_csv(OUT_DIR / "phase_6_v2_ablation_metrics.csv", index=False)
 
-    # Aggregate per-policy sanity checks into the safety-summary schema.
-    agg = (
-        sanity_df[sanity_df["expected_direction"].eq("decrease_or_equal")]
-        .groupby("horizon_years", as_index=False)
-        .agg(
-            unexpected_increase_rate=("violation_rate", "mean"),
-            mean_delta_score=("mean_delta_probability", lambda s: (s * 100).mean()),
-            worst_positive_delta_score=("max_delta_probability", lambda s: (s * 100).max()),
-        )
-    )
-    agg["directionally_correct_rate"] = 1.0 - agg["unexpected_increase_rate"]
-    agg.insert(0, "variant", "monotonic")
-    agg["history_years"] = HISTORY_YEARS
+    # The same seven favorable presets and score units as every sibling family.
+    agg = aggregate_safety(sanity_df)
     agg.to_csv(OUT_DIR / "phase_6_v2_ablation_safety_summary.csv", index=False)
 
     report = write_report(metrics_df, sanity_df, constraints_df)

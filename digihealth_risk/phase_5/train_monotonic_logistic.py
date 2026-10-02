@@ -200,50 +200,8 @@ def predict_probability(artifact: dict[str, Any], df: pd.DataFrame) -> np.ndarra
     return special.expit(x @ artifact["coefficients"])
 
 
-def scenario_summary_logistic(
-    artifact: dict[str, Any],
-    *,
-    train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
-    horizon: int,
-    history_years: int,
-    variant: str,
-) -> pd.DataFrame:
-    baseline_probability = predict_probability(artifact, test_df)
-    baseline_score = risk_score(baseline_probability)
-    rows = []
-
-    for preset_name, preset_fn in PRESET_REGISTRY.items():
-        adjusted = preset_fn(test_df.copy(), artifact, train_df)
-        adjusted = engineer_features(adjusted)
-        scenario_probability = predict_probability(artifact, adjusted)
-        scenario_score = risk_score(scenario_probability)
-        delta_probability = scenario_probability - baseline_probability
-        delta_score = scenario_score - baseline_score
-        unexpected = delta_score > TOLERANCE if preset_name in FAVORABLE_PRESETS else np.zeros(len(delta_score), dtype=bool)
-        no_effect = np.abs(delta_score) <= TOLERANCE
-        rows.append(
-            {
-                "variant": variant,
-                "horizon_years": horizon,
-                "history_years": history_years,
-                "scenario": preset_name,
-                "rows": float(len(test_df)),
-                "mean_delta_probability": float(delta_probability.mean()),
-                "min_delta_probability": float(delta_probability.min()),
-                "max_delta_probability": float(delta_probability.max()),
-                "mean_delta_score": float(delta_score.mean()),
-                "min_delta_score": float(delta_score.min()),
-                "max_delta_score": float(delta_score.max()),
-                "no_effect_rows": float(no_effect.sum()),
-                "no_effect_rate": float(no_effect.mean()),
-                "unexpected_increase_rows": float(unexpected.sum()),
-                "unexpected_increase_rate": float(unexpected.mean()),
-                "directionally_correct_rate": float(1.0 - unexpected.mean()),
-            }
-        )
-    return pd.DataFrame(rows)
-
+# Compatibility name; use the same scenarios, tolerances, and predictor as other families.
+from digihealth_risk.phase_5.monotonic_ablation_utils import scenario_summary as scenario_summary_logistic
 
 def run_combo(horizon: int, history_years: int, variant: str):
     df = load_table(phase0_path(horizon, history_years))

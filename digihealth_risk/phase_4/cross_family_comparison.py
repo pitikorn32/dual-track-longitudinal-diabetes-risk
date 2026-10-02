@@ -610,8 +610,7 @@ def write_report(ranking: pd.DataFrame, threshold_metrics: pd.DataFrame, cohort_
     return "\n".join(lines)
 
 
-def main() -> None:
-    PHASE4_OUT.mkdir(parents=True, exist_ok=True)
+def load_shared_predictions() -> tuple[pd.DataFrame, pd.DataFrame]:
     predictions = pd.concat(
         load_phase4_trees()
         + load_phase1_gee()
@@ -621,7 +620,12 @@ def main() -> None:
         ignore_index=True,
     )
     validate_target_alignment(predictions)
-    aligned_predictions, cohort_summary = align_shared_cohort(predictions)
+    return align_shared_cohort(predictions)
+
+
+def main() -> None:
+    PHASE4_OUT.mkdir(parents=True, exist_ok=True)
+    aligned_predictions, cohort_summary = load_shared_predictions()
     ranking = ranking_table(aligned_predictions)
 
     tree_thresholds = evaluate_tree_thresholds(aligned_predictions)

@@ -5,7 +5,7 @@ and re-computes derived features after each preset is applied.
 
 Examples:
     python digihealth_risk/phase_5/intervention_scenarios.py \
-      --patient-id "76562/29" --horizons 1 3 5
+      --patient-id "SYNTHETIC-001" --horizons 1 3 5
 
     python digihealth_risk/phase_5/intervention_scenarios.py \
       --max-patients 100 --horizons 3 --preset combined_lifestyle
@@ -110,64 +110,12 @@ def set_p75(row: pd.DataFrame, feature: str, artifact: dict[str, Any], reference
         row.loc[:, feature] = np.maximum(row[feature].astype(float), numeric_clip(row, feature, value, artifact))
 
 
-def reduce_sugary_50(row: pd.DataFrame, artifact: dict[str, Any], _: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    if "total_sugary_week" in adjusted.columns:
-        set_feature(adjusted, "total_sugary_week", float(adjusted["total_sugary_week"].iloc[0]) * 0.5, artifact)
-    return adjusted
-
-
-def reduce_sugary_zero(row: pd.DataFrame, artifact: dict[str, Any], _: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    set_min(adjusted, "total_sugary_week", artifact)
-    return adjusted
-
-
-def exercise_p75(row: pd.DataFrame, artifact: dict[str, Any], reference_df: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    set_p75(adjusted, "total_exercise_week", artifact, reference_df)
-    return adjusted
-
-
-def activity_p75(row: pd.DataFrame, artifact: dict[str, Any], reference_df: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    set_p75(adjusted, "total_phy_activity_week", artifact, reference_df)
-    return adjusted
-
-
-def veg_fruit_p75(row: pd.DataFrame, artifact: dict[str, Any], reference_df: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    set_p75(adjusted, "total_veg_fruit_week", artifact, reference_df)
-    return adjusted
-
-
-def bmi_minus_one(row: pd.DataFrame, artifact: dict[str, Any], _: pd.DataFrame) -> pd.DataFrame:
-    adjusted = row.copy()
-    if "BMI" in adjusted.columns and pd.notna(adjusted["BMI"].iloc[0]):
-        set_feature(adjusted, "BMI", float(adjusted["BMI"].iloc[0]) - 1.0, artifact)
-    return adjusted
-
-
-def combined_lifestyle(row: pd.DataFrame, artifact: dict[str, Any], reference_df: pd.DataFrame) -> pd.DataFrame:
-    adjusted = reduce_sugary_50(row, artifact, reference_df)
-    adjusted = exercise_p75(adjusted, artifact, reference_df)
-    adjusted = activity_p75(adjusted, artifact, reference_df)
-    adjusted = veg_fruit_p75(adjusted, artifact, reference_df)
-    return adjusted
-
-
-PRESET_REGISTRY: dict[str, Callable[[pd.DataFrame, dict[str, Any], pd.DataFrame], pd.DataFrame]] = {
-    "reduce_sugary_50": reduce_sugary_50,
-    "reduce_sugary_zero": reduce_sugary_zero,
-    "exercise_p75": exercise_p75,
-    "activity_p75": activity_p75,
-    "veg_fruit_p75": veg_fruit_p75,
-    "bmi_minus_one": bmi_minus_one,
-    "combined_lifestyle": combined_lifestyle,
-}
-
-FAVORABLE_PRESETS = set(PRESET_REGISTRY)
-
+# Use the publication scenario definitions for both batch and individual scoring.
+from digihealth_risk.phase_5.monotonic_ablation_utils import (
+    reduce_sugary_50, reduce_sugary_zero, exercise_p75, activity_p75,
+    veg_fruit_p75, bmi_minus_one, combined_lifestyle, PRESET_REGISTRY, FAVORABLE_PRESETS,
+)
+from digihealth_risk.utils.patient_split import apply_canonical_split
 
 def latest_rows_for_patients(df: pd.DataFrame, patient_ids: list[str] | None, source_year: int | None) -> pd.DataFrame:
     eligible = df.copy()
@@ -237,7 +185,7 @@ def score_rows(
     presets: list[str],
 ) -> pd.DataFrame:
     artifact = joblib.load(model_path(horizon))
-    reference_df = load_table(phase0_path(horizon))
+    reference_df, _ = apply_canonical_split(load_table(phase0_path(horizon)))
     reference_df = engineer_features(reference_df)  # v2: ensure reference has derived features
     records = []
 

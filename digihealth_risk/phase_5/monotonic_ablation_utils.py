@@ -19,7 +19,8 @@ OUT_DIR = ROOT / "digihealth_risk" / "phase_5" / "outputs"
 PHASE4_RANKING_PATH = ROOT / "digihealth_risk" / "phase_4" / "outputs" / "phase_4_2_v2_cross_family_ranking.csv"
 HORIZONS = [1, 2, 3, 4, 5]
 HISTORY_OPTIONS = [3, 5]
-TOLERANCE = 1e-10
+TOLERANCE = 1e-10  # Units: points on the 0--100 risk score.
+SCENARIO_SUITE = "favorable_presets_v1"
 
 
 @dataclass(frozen=True)
@@ -144,7 +145,7 @@ def set_feature(df: pd.DataFrame, feature: str, value: float, artifact: dict[str
 def set_min(df: pd.DataFrame, feature: str, artifact: dict[str, Any]) -> None:
     ranges = artifact.get("train_feature_ranges", {}).get(feature, {})
     if feature in df.columns and ranges.get("min") is not None:
-        df.loc[:, feature] = float(ranges["min"])
+        df[feature] = np.minimum(df[feature].astype(float), float(ranges["min"]))
 
 
 def set_p75(df: pd.DataFrame, feature: str, artifact: dict[str, Any], reference_df: pd.DataFrame) -> None:
@@ -158,8 +159,9 @@ def reduce_sugary_50(df: pd.DataFrame, artifact: dict[str, Any], _: pd.DataFrame
     adjusted = df.copy()
     if "total_sugary_week" in adjusted.columns:
         adjusted.loc[:, "total_sugary_week"] = adjusted["total_sugary_week"].astype(float) * 0.5
-        adjusted.loc[:, "total_sugary_week"] = adjusted["total_sugary_week"].map(
-            lambda value: numeric_clip("total_sugary_week", float(value), artifact)
+        adjusted["total_sugary_week"] = np.minimum(
+            df["total_sugary_week"].astype(float),
+            adjusted["total_sugary_week"].map(lambda value: numeric_clip("total_sugary_week", float(value), artifact)),
         )
     return adjusted
 
@@ -192,7 +194,7 @@ def bmi_minus_one(df: pd.DataFrame, artifact: dict[str, Any], _: pd.DataFrame) -
     adjusted = df.copy()
     if "BMI" in adjusted.columns:
         adjusted.loc[:, "BMI"] = adjusted["BMI"].astype(float) - 1.0
-        adjusted.loc[:, "BMI"] = adjusted["BMI"].map(lambda value: numeric_clip("BMI", float(value), artifact))
+        adjusted["BMI"] = np.minimum(df["BMI"].astype(float), adjusted["BMI"].map(lambda value: numeric_clip("BMI", float(value), artifact)))
     return adjusted
 
 
@@ -245,6 +247,8 @@ def scenario_summary(
                 "horizon_years": horizon,
                 "history_years": history_years,
                 "scenario": preset_name,
+                "scenario_suite": SCENARIO_SUITE,
+                "tolerance_score_points": TOLERANCE,
                 "rows": float(len(test_df)),
                 "mean_delta_probability": float(delta_probability.mean()),
                 "min_delta_probability": float(delta_probability.min()),
