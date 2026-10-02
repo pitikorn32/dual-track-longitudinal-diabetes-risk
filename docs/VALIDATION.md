@@ -51,12 +51,33 @@ checks**, with zero increases above `1e-10` score points. These are repeated
 model/scenario evaluations, not independent patients. Passing these presets
 does not prove unrestricted monotonicity or causal treatment benefit.
 
-At horizon 3, the paper's screening leader is XGBoost (AP 0.3964), while
-the available saved predictions select CatBoost (AP 0.395308). The saved
-monotonic XGBoost result is 0.406895 versus 0.4087 in the paper. Historical
-artifact/software differences remain unresolved. Reevaluation used XGBoost
-3.3.0; earlier dependency requirements specified 2.0.3. This difference alone
-does not establish the cause of the changed results.
+### XGBoost version sensitivity at the three-year horizon
+
+The paper's screening result is supported by the original prediction files:
+XGBoost has AP 0.396444 and ROC-AUC 0.815712, ahead of CatBoost at AP 0.395308.
+A controlled refit using the current training code, identical modeling data,
+patient assignments, feature values, and model settings reproduces those
+XGBoost predictions with version 2.0.3. Changing only XGBoost to version 3.3.0
+reproduces the later predictions used in the reference evaluation above.
+
+| XGBoost version | Three-year screening AP | ROC-AUC | Leading family |
+| --- | ---: | ---: | --- |
+| 2.0.3 | 0.396444 | 0.815712 | XGBoost |
+| 3.3.0 | 0.388361 | 0.814769 | CatBoost (AP 0.395308) |
+
+Both fits use 19,286 training occasions, 6,394 calibration occasions, and
+6,211 test occasions, with five-year history. Raw and Platt-calibrated
+predictions have the same AP. Each refit matches its corresponding saved raw
+predictions within `1e-15` probability units. The ranking change therefore
+reflects XGBoost version sensitivity, not a misreported screening score or a
+change in the evaluation cohort. The current dependency file pins 3.3.0;
+reproducing this published fit requires 2.0.3 in a separate environment.
+This check covers this screening configuration, not an end-to-end validation
+of every phase under 2.0.3.
+
+The saved monotonic XGBoost result is 0.406895 versus 0.4087 in the paper.
+The screening version comparison does not establish the cause of that separate
+difference.
 
 ## Bootstrap interpretation
 

@@ -23,6 +23,11 @@ python -m pytest tests -q
 bash reproduce.sh --profile healthcom --dry-run
 ```
 
+The pinned XGBoost version is 3.3.0. The paper's three-year screening fit is
+reproduced with XGBoost 2.0.3; the version changes its score and rank. See the
+[version comparison](docs/VALIDATION.md#xgboost-version-sensitivity-at-the-three-year-horizon)
+before comparing results with the paper.
+
 The smoke command constructs an artificial cohort in a temporary directory,
 builds rolling features, uses the canonical patient split, fits monotonic
 XGBoost, and checks all seven favorable scenarios. It does not read private data
