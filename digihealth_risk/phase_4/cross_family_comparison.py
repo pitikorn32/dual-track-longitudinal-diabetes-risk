@@ -202,12 +202,12 @@ def align_shared_cohort(predictions: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
     return pd.concat(aligned_parts, ignore_index=True), pd.DataFrame(summary_rows)
 
 
-def load_phase1_gee() -> list[pd.DataFrame]:
+def load_phase1_gee(*, include_legacy: bool = False) -> list[pd.DataFrame]:
     specs = []
-    for version_name, prefix, model_name in [
-        ("v1", "phase_1_gee", "GEE v1"),
-        ("v2", "phase_1_v2_gee", "GEE v2"),
-    ]:
+    versions = [("v2", "phase_1_v2_gee", "GEE v2")]
+    if include_legacy:
+        versions.insert(0, ("v1", "phase_1_gee", "GEE v1"))
+    for version_name, prefix, model_name in versions:
         for history in [1, 3, 5]:
             for horizon in [1, 2, 3, 4, 5]:
                 specs.append(
@@ -620,7 +620,11 @@ def load_shared_predictions() -> tuple[pd.DataFrame, pd.DataFrame]:
         ignore_index=True,
     )
     validate_target_alignment(predictions)
-    return align_shared_cohort(predictions)
+    aligned, summary = align_shared_cohort(predictions)
+    # Publication contract: 18 calibrated tree instances, 6 statistical, 4 survival.
+    if set(summary.horizon_years) != {1, 2, 3, 4, 5} or not summary.model_instances.eq(28).all():
+        raise ValueError('Incomplete publication comparison: require 28 model configurations at each of five horizons; run phases 1 through 4')
+    return aligned, summary
 
 
 def main() -> None:

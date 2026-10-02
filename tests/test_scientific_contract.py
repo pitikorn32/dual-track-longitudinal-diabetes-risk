@@ -81,6 +81,15 @@ def test_shared_cohort_intersects_keys_not_row_positions():
     assert summary.shared_rows.tolist() == [1]
 
 
+def test_publication_comparison_rejects_incomplete_model_grid(monkeypatch):
+    from digihealth_risk.phase_4 import cross_family_comparison as comparison
+    monkeypatch.setattr(comparison, 'load_phase4_trees', lambda: [prediction_rows()])
+    for loader in ['load_phase1_gee', 'load_phase1_logistic_v2', 'load_phase3_2_landmark_cox', 'load_phase3_3_two_stage']:
+        monkeypatch.setattr(comparison, loader, lambda: [])
+    with pytest.raises(ValueError, match='28 model configurations'):
+        comparison.load_shared_predictions()
+
+
 def test_history_and_cumulative_predictors_ignore_future_readings():
     row = {name: 0 for name in STATIC_FEATURES}
     row.update(PatientId='synthetic-a', date_of_birth=pd.Timestamp('1970-01-01'))
