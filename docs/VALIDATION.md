@@ -1,53 +1,41 @@
 # Software validation and known result differences
 
-Validated on 2026-10-02 in the existing `digihealth` conda environment,
-Python 3.12.13. The pinned requirements describe this tested environment;
-installation into a fresh environment was not tested. Publication references
-are the HealthCom v6 camera-ready paper and thesis V7.
+The software checks below run without patient data. The reference results later
+in this document use the private study cohort and cannot be reproduced with the
+synthetic example. See [methods](PUBLICATION.md) for data requirements and
+analysis commands.
 
-## Scope of execution
+## Check the software
 
-This validation reevaluated saved research predictions and trained artifacts,
-ran targeted research refits, and exercised the synthetic workflow. It was
-**not a fresh end-to-end retraining of every phase**.
-Saved predictions do not have complete historical training provenance.
+From the repository root, after installing `requirements-dev.txt`:
 
-| Check | Result |
-| --- | --- |
-| `python -m pytest -q` | 34 passed, including BHI export compatibility |
-| `python -m digihealth_risk.publication.smoke` | Artificial cohort, isolated split cache, monotonic fit, and seven scenarios completed |
-| Both runner profiles with `--dry-run`; `bash -n reproduce.sh` | Passed |
-| `phase_4/cross_family_comparison.py` | Complete 28-configuration grid at all five horizons; 140 ranking rows |
-| `phase_4/bootstrap_significance.py` | 2,000 valid patient-cluster replicates for each of ten comparisons |
-| Bootstrap with `--survival-reference best` | Separate sensitivity analysis completed with 2,000 valid replicates per comparison |
-| `phase_5/evaluate_saved_models.py` | All 45 configurations evaluated on exact shared rows |
-| `phase_5/intervention_benchmark.py` | Performance and directional evidence joined by configuration, artifact, and cohort |
-| `publication.feature_ablation` | Eight paired current-fit results across four families |
-| `publication.feature_importance` | Research tree refits and saved statistical coefficients for all five horizon leaders |
-| `phase_4/feature_effects_analysis.py` | Current effect summaries regenerated |
-| `phase_1/compare_statistical_grid.py` | Supplementary comparison regenerated |
-| `phase_0/build_cohort_figure.py` | Cohort accounting regenerated; holdout allocation separated from alignment exclusions |
-| `publication.report` | Eight PNG/PDF figures, top-five table, and provenance manifest generated; no optional figures omitted |
+```bash
+python -m pytest -q
+python -m digihealth_risk.publication.smoke
+bash reproduce.sh --profile healthcom --dry-run
+bash reproduce.sh --profile thesis --dry-run
+```
 
-Module names beginning with `publication.` are run with
-`python -m digihealth_risk.publication.<name>`. Script paths begin at
-`digihealth_risk/`. See [methods](PUBLICATION.md) for ordered workflows.
+The smoke command fits a model to artificial data and checks seven favorable
+scenarios. The dry runs list commands without executing the research pipeline.
 
 Tests cover average precision and tied ROC scores, cohort/target alignment,
 required model-grid coverage, patient split isolation, future clinical-value
 exclusion, exact-artifact safety joins, scenario clipping and derived-feature
 refresh, patient-bootstrap multiplicity, and runner argument handling.
 
-The source-label audit found no disagreement between supplied cumulative
-categories and the published study cutoffs (non-DM ≤100, pre-DM >100 through
-125, DM >125 mg/dL). This does not establish
-prospective availability of the questionnaire fields.
+## Reference evaluation on the study cohort
 
-## Current shared-cohort evidence
+The following results reevaluate saved predictions and trained models on
+identical test occasions across model families. They cover 28 screening
+configurations per horizon and 45 monotonic configurations in total. They do
+not represent a complete retraining of the pipeline or replace the results
+reported in the HealthCom paper. The original training environment for every
+saved model is not fully documented.
 
-These aggregate results describe local saved-artifact reevaluation. They are
-not new estimates from public data and are not substitutes for the printed
-camera-ready table.
+The supplied cumulative outcome categories agree with the study cutoffs:
+non-DM ≤100, pre-DM >100 through 125, and DM >125 mg/dL. Questionnaire collection
+dates remain unverified.
 
 | Horizon | Shared test occasions | Screening leader | Screening AP | Monotonic leader | Monotonic AP |
 | --- | ---: | --- | ---: | --- | ---: |
@@ -63,12 +51,12 @@ checks**, with zero increases above `1e-10` score points. These are repeated
 model/scenario evaluations, not independent patients. Passing these presets
 does not prove unrestricted monotonicity or causal treatment benefit.
 
-At horizon 3, the camera-ready screening leader is XGBoost (AP 0.3964), while
+At horizon 3, the paper's screening leader is XGBoost (AP 0.3964), while
 the available saved predictions select CatBoost (AP 0.395308). The saved
 monotonic XGBoost result is 0.406895 versus 0.4087 in the paper. Historical
-artifact/software differences remain unresolved; the current environment uses
-XGBoost 3.3.0 rather than the former requirements pin of 2.0.3. A version
-difference alone does not establish the cause.
+artifact/software differences remain unresolved. Reevaluation used XGBoost
+3.3.0; earlier dependency requirements specified 2.0.3. This difference alone
+does not establish the cause of the changed results.
 
 ## Bootstrap interpretation
 
@@ -92,13 +80,14 @@ adjust for retrospective model selection.
 
 ## Remaining limits
 
-The current feature ablation is a defined removal of engineered terms, not a
-reconstruction of historical v1 code. Tree importance comes from named research
-refits, not recovered frozen historical trees. Previously saved calendar-time
-ablation results were plotted, not fully retrained during this validation.
+The feature ablation removes the engineered terms listed in the methods guide;
+it does not recreate the earlier feature set used for the paper's ablation.
+Tree importance describes research refits rather than the original fitted
+trees. The calendar-time comparison uses saved ablation results, without a
+complete retraining for this evaluation.
 Questionnaire collection dates remain unverified; static lifestyle values are
 an explicit research assumption.
 
-Private data, identifiers, predictions, serialized models, figures, and local
-snapshots remain ignored by Git. The report manifest records the reporting
-revision and input hashes; historical training provenance remains incomplete.
+The public repository contains code and synthetic examples. The report manifest
+records the reporting revision and input hashes; it does not recover missing
+information about how earlier models were trained.

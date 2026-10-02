@@ -1,9 +1,5 @@
 # Phase 5: Intervention-Safe Models (Monotonic Constraints)
 
-## Thesis reference
-Section 4.3 (Intervention-Safe Risk Scoring), Section 5.4 (Intervention-Safe
-Benchmarking), Section 5.5.3 (Calibration-Oriented Tree Results)
-
 ## Purpose
 Trains five model families with monotonic constraints and evaluates directional
 consistency under seven specified favorable scenarios on every shared test row. All five families are benchmarked together in

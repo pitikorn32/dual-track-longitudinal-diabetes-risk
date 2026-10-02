@@ -1,9 +1,5 @@
 # Phase 1: Statistical Models (GEE, Logistic, GLMM)
 
-## Thesis reference
-Section 4.1.1 (Biostatistical Models), Section 5.1 (Pure Prediction Performance),
-Section 5.5.1 (Feature Ablation: Statistical Models)
-
 ## Purpose
 Trains the three biostatistical model families on the rolling patient-year tables.
 GEE and Logistic (refined features) are included in the final leaderboard.

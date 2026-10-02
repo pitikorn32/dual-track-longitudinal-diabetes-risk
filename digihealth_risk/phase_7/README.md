@@ -19,7 +19,7 @@ invariant to calendar year when all other inputs are held fixed.
 
 ## Why this matters
 
-The thesis baseline includes `Year_centered_sq` because Ljung-Box found mild
+The research baseline includes `Year_centered_sq` because Ljung-Box found mild
 non-linear drift in population-level risk across the 2005–2016 training
 window (p = 0.03). That justification holds *within* the training window,
 but raises two problems at deployment:

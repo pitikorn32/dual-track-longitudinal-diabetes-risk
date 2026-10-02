@@ -1,4 +1,4 @@
-# Validated research environment: Python 3.12.13 (digihealth).
+# Research dependencies for Python 3.12.
 # Serving-only installations may use deployment/requirements.txt.
 pandas==3.0.3
 numpy==2.4.6

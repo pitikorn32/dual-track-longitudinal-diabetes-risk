@@ -1,10 +1,5 @@
 # Phase 4: Calibration, Threshold Policy & Final Leaderboard
 
-## Thesis reference
-Section 4.2 (Calibration and Fair Final Comparison),
-Section 4.4.4 (Threshold and Policy Layer),
-Section 5.1 (Final Leaderboard Table)
-
 ## Purpose
 Three scripts that together produce the final cross-family comparison:
 1. **calibrate_trees.py**: applies Platt scaling and isotonic regression to tree
@@ -13,7 +8,7 @@ Three scripts that together produce the final cross-family comparison:
    threshold policies on the calibration subset.
 3. **cross_family_comparison.py**: shared-cohort comparison across all families
    (trees, GEE, logistic, landmark Cox, two-stage survival). Produces the final
-   leaderboard used in Section 5.1.
+   shared-cohort research leaderboard.
 
 ## Prerequisites
 - `digihealth_risk/phase_0/outputs/`: modeling tables (Phase 0)

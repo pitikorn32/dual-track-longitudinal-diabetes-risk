@@ -14,7 +14,7 @@ The example verifies software behavior; it cannot reproduce the paper's numbers.
 
 ## Start without private data
 
-The validated research environment uses Python 3.12.13. In a new environment:
+Use Python 3.12 and install the pinned dependencies:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -77,9 +77,8 @@ manifest under `digihealth_risk/publication/outputs/`.
 
 See [methods and claim-to-command mapping](docs/PUBLICATION.md),
 [validation and known differences](docs/VALIDATION.md), and the
-[glossary](GLOSSARY.md). The camera-ready manuscript is fixed; repository notes
-identify differences between historical descriptions, saved evidence, and the
-current implementation.
+[glossary](GLOSSARY.md) for definitions, implementation details, and known
+differences from the published results.
 
 ## Repository layout
 

@@ -1,6 +1,6 @@
 # Longitudinal Diabetes Risk Study
 
-Shared terminology for the HealthCom camera-ready paper and the extended thesis. These definitions describe their common study concepts.
+Definitions of the study concepts used in the HealthCom paper and supplementary analyses.
 
 ## Language
 

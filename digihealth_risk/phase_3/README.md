@@ -1,15 +1,12 @@
 # Phase 3: Survival Models
 
-## Thesis reference
-Section 4.1.3 (Survival Models), Section 5.3 (Survival-Model Results)
-
 ## Purpose
 Two survival formulations directly comparable to the binary classification families:
 1. **Landmark Cox**: each eligible patient-year is a landmark origin; fixed-horizon
    binary labels derived from future AtRisk status.
 2. **Two-stage rolling survival**: Stage 1 forecasts near-future covariates (Bayesian
    ridge per feature); Stage 2 fits Cox on forecasted values. History window M∈{1,3,5}
-   is explicitly tested (key thesis result: M=1 degenerates; M=3 is strongest).
+   is evaluated separately (M=1 gives degenerate predictions; M=3 performs best in the reported comparison).
 
 The baseline Cox model (one-row-per-patient, 2005 baseline) is **not included**: it
 does not operate on rolling observations and is not in the final leaderboard.
@@ -31,7 +28,7 @@ python digihealth_risk/phase_3/two_stage_survival.py --history-window 5
 python digihealth_risk/phase_3/two_stage_survival.py --history-window 1
 ```
 The M=1 run is expected to produce degenerate (ROC-AUC ≈ 0.5) results, this is
-the key negative result reported in Section 5.3.
+a reported limitation of this forecasting formulation.
 
 ## Key outputs
 

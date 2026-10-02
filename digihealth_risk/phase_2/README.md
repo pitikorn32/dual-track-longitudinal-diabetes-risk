@@ -1,9 +1,5 @@
 # Phase 2: Tree-Based Models
 
-## Thesis reference
-Section 4.1.2 (Tree-Based Models), Section 5.1 (Pure Prediction Performance),
-Section 5.2 (Horizon and History Effects), Section 5.5.2 (Tree Feature Ablation)
-
 ## Purpose
 Trains XGBoost, CatBoost, LightGBM, HistGradientBoosting, and RandomForest on
 rolling patient-year tables. Includes a hybrid slope-feature branch (LMM-derived
@@ -13,7 +9,7 @@ longitudinal trends) and a full N×M horizon/history grid search.
 
 | Script | Role |
 |--------|------|
-| `train_tree_models.py` | Train all 5 tree families (v2 features) |
+| `train_tree_models.py` | Train all 5 tree families (engineered features) |
 | `lmm_slope_features.py` | Add LMM-shrunk slope columns to modeling table |
 | `horizon_history_grid.py` | Grid search over N∈{1..5}, M∈{1,3,5} |
 

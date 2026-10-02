@@ -9,7 +9,7 @@ Run from the modeling repository root:
 
 ```bash
 python -m digihealth_risk.service_exports.bhi_risk_awareness \
-  --output-dir ../DM_risk_prediction/.local/model_releases/bhi-ridge-m5-no-year-v1
+  --output-dir /path/to/private/model-releases/bhi-ridge-m5-no-year-v1
 ```
 
 The command requires the private cohort and existing Phase 0 `M=5` modeling

@@ -1,8 +1,5 @@
 # Phase 0: Data Engineering
 
-## Thesis reference
-Section 3 (Dataset and Problem Formulation) and Section 4.4.1 (Temporal Grid)
-
 ## Purpose
 Pivots the raw 121-column wide-format clinical dataset into rolling patient-year
 modeling tables. Each table encodes a specific prediction horizon N and history
@@ -49,7 +46,7 @@ Also produces: `patient_year_long.pkl`, `phase_0_eda_report.md`, CSV samples.
 
 `eda_depth.py` is an optional analysis script, not part of the build path:
 nothing downstream consumes its outputs. It produces the statistical evidence
-behind the v2 feature-engineering choices, supporting thesis Section 3.4.2.
+for the engineered features used by the statistical and tree models.
 
 ### Run
 
@@ -61,7 +58,7 @@ Requires Step 1 above (`patient_year_long.pkl` and `phase_0_modeling_table.pkl`)
 
 | File | Key finding |
 |------|-------------|
-| `phase_0_2_vif.csv` | VIF=225 for `pulse_pressure`, removed in v2 |
+| `phase_0_2_vif.csv` | VIF=225 for `pulse_pressure`, excluded from the refined feature set |
 | `phase_0_2_ljung_box.csv` | Ljung-Box p=0.03 for `Year_centered`, `Year_centered_sq` added |
 | `phase_0_2_cross_lagged_correlation.csv` | `MAX_FBS_x_Age` cross-lag r=0.582, interaction added |
 | `phase_0_2_report.md` | Full summary |
@@ -73,4 +70,4 @@ Runtime: roughly 5-10 min.
 After phase 4, `python digihealth_risk/phase_0/build_cohort_figure.py` writes
 `publication_cohort_accounting.csv` and PNG/PDF figures under phase-0 outputs.
 The figure separates eligible rows, held-out test rows, and shared-row alignment
-exclusions. It never writes into a versioned thesis folder.
+exclusions.

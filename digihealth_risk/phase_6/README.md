@@ -1,17 +1,12 @@
 # Phase 6: Deployment (FastAPI, dual-track)
 
-## Thesis reference
-Implements the dual-output deployment architecture argued in the thesis
-Discussion (§6.4) and Conclusion (§7.1): two complementary risk-scoring
-tracks built on a common data-engineering foundation.
-
 ## Purpose
 Exports 30 model artifacts and serves them via a stateless FastAPI:
 
 | Track | Endpoint | Purpose | Source |
 |-------|----------|---------|--------|
-| Screening | `POST /predict` | Pure-prediction risk for passive screening | Thesis §5.1 leaderboard winners |
-| Intervention | `POST /predict/interventions` | Intervention-safe what-if simulation | Thesis §5.4 monotonic winners |
+| Screening | `POST /predict` | Pure-prediction risk for passive screening | Research screening families |
+| Intervention | `POST /predict/interventions` | Intervention-safe what-if simulation | Research monotonic families |
 
 The API accepts raw questionnaire + annual measurement inputs and returns a
 risk score plus (for the intervention track) directionally safe what-if
@@ -28,7 +23,7 @@ excluded from training and inference:
 | `POST /no_year/predict` | Screening, calendar-time invariant | Phase 7 ablation winners |
 | `POST /no_year/predict/interventions` | Intervention, calendar-time invariant | Phase 7 ablation monotonic |
 
-The two trees coexist: `/predict` represents the main thesis result and is
+The two endpoint groups coexist: `/predict` includes calendar-year features and is
 appropriate when the deployment cohort matches the 2005–2016 training window
 or when retraining on fresh data is feasible. `/no_year/*` is the
 construct-validity alternative for deployments without a retraining
@@ -46,13 +41,12 @@ scored in, at a small documented PR-AUC cost (see
 | 4 | Logistic | Monotonic CatBoost |
 | 5 | Logistic\* | Monotonic CatBoost |
 
-\* Thesis §5.1 screening winner at $N=5$ is GEE (PR-AUC 0.5282). statsmodels
+\* The paper's screening winner at $N=5$ is GEE (PR-AUC 0.5282). statsmodels
 GEE estimators do not serialize cleanly through joblib, so Logistic
 (PR-AUC 0.5248, a 0.0034 gap) is substituted for deployability. The
 substitution is recorded explicitly in `outputs/model_registry.json`.
 
-All 30 models are trained at history windows $M \in \{1, 3, 5\}$, matching
-the surface area of the old deployment.
+All 30 models are trained at history windows $M \in \{1, 3, 5\}$, covering all three research history windows.
 
 ## Prerequisites
 - `digihealth_risk/phase_0/outputs/`: all Phase 0 modeling tables for
@@ -98,7 +92,7 @@ Interactive docs: http://localhost:8000/docs
 
 ## Endpoints
 
-### Main thesis tree (with-Year)
+### With-year endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -140,9 +134,9 @@ back to the export command.
 
 Each preset is stored inside every intervention-track artifact with
 training-set-derived constants, so the API serves the same scenario
-definitions the training cohort saw. The monotonic constraints guarantee
-favorable changes never produce a higher risk score (thesis §5.4
-"directionally correct rate = 1.0").
+definitions used during export. Directional behavior must be checked on the
+served artifacts; research benchmark results alone do not validate these
+separately trained models.
 
 ## Expected runtime
 - Export (per variant): ~30–60 min wall clock (re-trains 30 models across the N×M grid).
@@ -153,7 +147,7 @@ favorable changes never produce a higher risk score (thesis §5.4
 
 | Situation | Recommended endpoint |
 |---|---|
-| Deployment cohort matches 2005–2016, or a periodic retraining pipeline on fresh data is in place | `/predict`, `/predict/interventions` (main thesis) |
+| Deployment cohort matches 2005–2016, or a periodic retraining pipeline on fresh data is in place | `/predict`, `/predict/interventions` (with-year) |
 | Deployment in 2024+ with no retraining pipeline, and same patient inputs must produce the same risk regardless of calendar year | `/no_year/predict`, `/no_year/predict/interventions` |
 | Phase 7 reports a meaningful PR-AUC gap (e.g. N=1 horizon) and you can accept it for construct validity | `/no_year/*` for those horizons, `/predict*` for the others |
 
@@ -161,23 +155,12 @@ The phase_7 ablation report quantifies the trade-off per (horizon, history,
 family). At N=3 and N=5 the two trees are within ~0.005 PR-AUC of each
 other; at N=1 the no-Year variant loses ~0.02 PR-AUC.
 
-## Differences vs legacy deployment
-
-The original deployment used Monotonic
-XGBoost uniformly for all 15 horizon/history combinations. That choice
-predates the final thesis leaderboards and does not reflect the §5.1 /
-§5.4 horizon-specific winners or the §6.4 dual-track argument. The
-deployment in this directory replaces it.
-
 ## Notes
 
-- The single substitution (Logistic for GEE at $N=5$) is the only place
-  where the served model diverges from the thesis tables. It is recorded
-  in `outputs/model_registry.json` under `tracks.screening.n5_substitution_note`.
-- The intervention-track artifacts retain the same monotonic-constraint
-  parameterization used in `digihealth_risk/phase_5/`, so the directional
-  safety guarantees from the thesis §5.4 benchmark hold here too.
-- Both tracks share the v2 feature engineering (FBS hinges,
+- Serving models are trained separately from the research benchmark. Their
+  metrics and preprocessing metadata are recorded in the exported registry;
+  they are not frozen copies of the paper's fitted models.
+- Both tracks share the engineered features (FBS hinges,
   `Year_centered_sq`, `FBS_x_Age`, `MAX_FBS_x_Age`) from
   `digihealth_risk/phase_2/train_tree_models.py::engineer_features`.
 - The `/no_year/*` tree uses the same module with
