@@ -90,7 +90,6 @@ current implementation.
 | `digihealth_risk/utils/` | Canonical patient split and evaluation checks |
 | `tests/` | Scientific invariants, command-line behavior, and BHI export compatibility |
 | `deployment/` | Separately trained serving variants; see its README |
-| `docs/adr/` | Scope and methodological decisions |
 
 The serving API retrains variants and substitutes some families; its outputs
 are not frozen copies of the paper's benchmark fits. The BHI exporter under

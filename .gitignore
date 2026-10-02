@@ -218,6 +218,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # ── DigiHealth pipeline artifacts ─────────────────────────────
+# Internal planning notes stay local.
+/docs/adr/
+
 # De-identified patient data is never committed to this repository.
 datasets/
 
