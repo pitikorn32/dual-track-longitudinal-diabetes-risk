@@ -55,7 +55,16 @@ def main():
             ax.vlines(frame.horizon_years, frame.delta_pr_auc_ci_low, frame.delta_pr_auc_ci_high, color='#0072B2')
             ax.plot(frame.horizon_years, frame.delta_pr_auc, 'o', color='#0072B2')
             ax.axhline(0, color='#555555', linestyle='--', linewidth=1)
-            ax.set(title=comparison.replace('_', ' '), xlabel='Horizon (years)', xticks=range(1, 6))
+            title = 'Tree vs statistical leader'
+            if comparison == 'winner_vs_survival':
+                references = frame.survival_reference.unique().tolist()
+                if references == ['fixed-m5']:
+                    title = 'Winner vs two-stage survival (M=5)'
+                elif references == ['best']:
+                    title = 'Winner vs best survival'
+                else:
+                    raise ValueError(f'Ambiguous survival reference: {references}')
+            ax.set(title=title, xlabel='Horizon (years)', xticks=range(1, 6))
         axes[0].set_ylabel('Difference in average precision\n95% patient-cluster bootstrap interval')
         save(fig, args.output_dir, 'bootstrap_differences')
     else:
