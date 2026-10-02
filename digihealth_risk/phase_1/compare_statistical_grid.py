@@ -50,6 +50,15 @@ def read_family_cell(family: str, n: int, m: int) -> dict | None:
     }
 
 
+def markdown(frame: pd.DataFrame) -> str:
+    display = frame.reset_index()
+    headers = [str(c) for c in display.columns]
+    lines = ['| ' + ' | '.join(headers) + ' |', '| ' + ' | '.join(['---'] * len(headers)) + ' |']
+    for row in display.itertuples(index=False, name=None):
+        lines.append('| ' + ' | '.join(f'{v:.4f}' if isinstance(v, float) else str(v) for v in row) + ' |')
+    return '\n'.join(lines)
+
+
 def main() -> None:
     rows = []
     for family in FAMILIES:
@@ -75,7 +84,7 @@ def main() -> None:
         pivot = pivot.reindex(level=0, labels=FAMILIES)
         md_lines.append(f"## {metric}")
         md_lines.append("")
-        md_lines.append(pivot.to_markdown(floatfmt=".4f"))
+        md_lines.append(markdown(pivot))
         md_lines.append("")
 
     # Family head-to-head: at each cell, who wins on PR-AUC?
@@ -84,7 +93,7 @@ def main() -> None:
     head = df.pivot_table(index="M", columns=["N"], values="PR-AUC", aggfunc="max")
     md_lines.append("Best PR-AUC across the three families at each (N, M) cell:")
     md_lines.append("")
-    md_lines.append(head.to_markdown(floatfmt=".4f"))
+    md_lines.append(markdown(head))
     md_lines.append("")
 
     md_lines.append("Winning family at each (N, M) cell (test PR-AUC):")
@@ -93,7 +102,7 @@ def main() -> None:
         df.loc[df.groupby(["N", "M"])["PR-AUC"].idxmax(), ["N", "M", "family", "PR-AUC"]]
         .pivot(index="M", columns="N", values="family")
     )
-    md_lines.append(winners.to_markdown())
+    md_lines.append(markdown(winners))
     md_lines.append("")
 
     md_path = OUT / "phase_1_v2_statistical_grid_comparison.md"

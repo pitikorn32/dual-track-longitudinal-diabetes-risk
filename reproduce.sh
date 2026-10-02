@@ -2,13 +2,15 @@
 # ============================================================
 # reproduce.sh  (longitudinal-diabetes-risk repository root)
 #
-# Runs every thesis experiment phase in dependency order.
+# Runs the HealthCom research workflow; --profile thesis adds supplements.
 # Must be executed from the repository root:
 #
 #   bash reproduce.sh [options]
 #
 # Options:
-#   --from-phase N   Start from phase N (1-7).  Skips earlier phases.
+#   --profile NAME   healthcom (default) or thesis (adds supplementary analyses).
+#   --with-deploy    Also export separate serving models (off by default).
+#   --from-phase N   Start from phase N (0-7).  Skips earlier phases.
 #                    Phase numbering: 0=data, 0a=appendix EDA, 1=statistical,
 #                    2=tree, 3=survival, 4=calibration+leaderboard,
 #                    5=intervention-safe, 6=deployment, 7=year-features
@@ -29,27 +31,35 @@ set -euo pipefail
 
 # ── Parse arguments ─────────────────────────────────────────
 FROM_PHASE=0
-NO_DEPLOY=false
+NO_DEPLOY=true
+PROFILE=healthcom
 NO_ABLATION=false
 FAIL_FAST=false
 FORCE_FLAG=""
 DRY_RUN=false
 
-for arg in "$@"; do
-    case "$arg" in
-        --from-phase=*)   FROM_PHASE="${arg#*=}" ;;
-        --from-phase)     shift; FROM_PHASE="${1:-0}" ;;
-        --no-deploy)      NO_DEPLOY=true ;;
-        --no-ablation)    NO_ABLATION=true ;;
-        --fail-fast)      FAIL_FAST=true ;;
-        --force)          FORCE_FLAG="--force" ;;
-        --dry-run)        DRY_RUN=true ;;
-        -h|--help)
-            sed -n '3,32p' "$0"; exit 0 ;;
-        *)
-            echo "Unknown option: $arg" >&2; exit 1 ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --from-phase=*) FROM_PHASE="${1#*=}"; shift ;;
+        --from-phase)
+            [[ $# -ge 2 ]] || { echo "--from-phase requires 0..7" >&2; exit 1; }
+            FROM_PHASE="$2"; shift 2 ;;
+        --profile=*) PROFILE="${1#*=}"; shift ;;
+        --profile)
+            [[ $# -ge 2 ]] || { echo "--profile requires healthcom or thesis" >&2; exit 1; }
+            PROFILE="$2"; shift 2 ;;
+        --with-deploy) NO_DEPLOY=false; shift ;;
+        --no-deploy) NO_DEPLOY=true; shift ;;
+        --no-ablation) NO_ABLATION=true; shift ;;
+        --fail-fast) FAIL_FAST=true; shift ;;
+        --force) FORCE_FLAG="--force"; shift ;;
+        --dry-run) DRY_RUN=true; shift ;;
+        -h|--help) sed -n '3,29p' "$0"; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
+[[ "$FROM_PHASE" =~ ^[0-7]$ ]] || { echo "--from-phase requires 0..7" >&2; exit 1; }
+[[ "$PROFILE" == healthcom || "$PROFILE" == thesis ]] || { echo "--profile requires healthcom or thesis" >&2; exit 1; }
 
 # ── Paths ───────────────────────────────────────────────────
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -134,12 +144,12 @@ _skip_phase() {
 # ── Verify repo root ─────────────────────────────────────────
 cd "$REPO_ROOT"
 
-if [[ ! -f "datasets/df_final.pkl" ]]; then
+if ! $DRY_RUN && [[ ! -f "datasets/df_final.pkl" ]]; then
     echo "ERROR: datasets/df_final.pkl not found. Place the 5.6 MB source file before running." >&2
     exit 1
 fi
 
-_log "DigiHealth 2025-IS — full experiment run"
+_log "DigiHealth publication workflow: $PROFILE"
 _log "Repo root  : $REPO_ROOT"
 _log "From phase : $FROM_PHASE"
 _log "No deploy  : $NO_DEPLOY"
@@ -184,7 +194,7 @@ fi
 # ═══════════════════════════════════════════════════════════
 # PHASE 0a — Appendix EDA (depth analysis, Section 3.4.2)
 # ═══════════════════════════════════════════════════════════
-if [[ "$FROM_PHASE" -le 0 ]]; then
+if [[ "$FROM_PHASE" -le 0 && "$PROFILE" == thesis ]]; then
     _phase_header "0a" "Appendix EDA — feature-engineering evidence"
 
     _run "phase_0  eda_depth" \
@@ -212,9 +222,12 @@ if [[ "$FROM_PHASE" -le 1 ]]; then
                 $FORCE_FLAG
     done
 
-    # GLMM: exploratory only (v1 features, no --force support)
-    _run "phase_1  GLMM exploratory" \
-        python digihealth_risk/phase_1/glmm_exploratory.py
+    _run "phase_1  GPBoost GLMM comparator M=5" \
+        python digihealth_risk/phase_1/glmm_gpboost_horizon_grid.py --history-years 5 $FORCE_FLAG
+    if [[ "$PROFILE" == thesis ]]; then
+        _run "phase_1  statistical comparison supplement" \
+            python digihealth_risk/phase_1/compare_statistical_grid.py
+    fi
 else
     _skip_phase 1
 fi
@@ -252,6 +265,8 @@ if [[ "$FROM_PHASE" -le 2 ]]; then
     # horizon_history_grid re-builds phase0 tables if missing and runs the grid.
     _run "phase_2  horizon_history_grid (N×M grid, v2 features)" \
         python digihealth_risk/phase_2/horizon_history_grid.py
+    _run "phase_2  LightGBM comparator" \
+        python digihealth_risk/phase_2/lightgbm_exclusion_benchmark.py
 else
     _skip_phase 2
 fi
@@ -293,6 +308,14 @@ if [[ "$FROM_PHASE" -le 4 ]]; then
 
     _run "phase_4  cross_family_comparison  →  FINAL LEADERBOARD" \
         python digihealth_risk/phase_4/cross_family_comparison.py
+    _run "phase_4  patient-cluster bootstrap" \
+        python digihealth_risk/phase_4/bootstrap_significance.py
+    _run "phase_4  effect sizes and GEE interpretation" \
+        python digihealth_risk/phase_4/feature_effects_analysis.py
+    _run "phase_4  feature-engineering ablation" \
+        python -m digihealth_risk.publication.feature_ablation
+    _run "phase_4  research-model importance" \
+        python -m digihealth_risk.publication.feature_importance
 else
     _skip_phase 4
 fi
@@ -318,6 +341,9 @@ if [[ "$FROM_PHASE" -le 5 ]]; then
 
     _run "phase_5  train_monotonic_logistic" \
         python digihealth_risk/phase_5/train_monotonic_logistic.py
+
+    _run "phase_5  evaluate exact saved artifacts on shared rows" \
+        python digihealth_risk/phase_5/evaluate_saved_models.py
 
     _run "phase_5  intervention_benchmark  →  INTERVENTION LEADERBOARD" \
         python digihealth_risk/phase_5/intervention_benchmark.py
@@ -386,6 +412,14 @@ elif $NO_ABLATION; then
     _log ""
     _log "  Phase 7 year-features ablation skipped (--no-ablation)."
     _log "  Run manually: bash digihealth_risk/phase_7/run_all.sh"
+fi
+
+# Publication figures and tables are generated from research outputs only.
+_run "publication  figures and aggregate evidence" \
+    python -m digihealth_risk.publication.report
+if [[ "$PROFILE" == thesis ]]; then
+    _run "thesis  cohort accounting figure" \
+        python digihealth_risk/phase_0/build_cohort_figure.py
 fi
 
 # ═══════════════════════════════════════════════════════════
