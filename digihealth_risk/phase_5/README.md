@@ -5,9 +5,8 @@ Section 4.3 (Intervention-Safe Risk Scoring), Section 5.4 (Intervention-Safe
 Benchmarking), Section 5.5.3 (Calibration-Oriented Tree Results)
 
 ## Purpose
-Trains five model families with monotonic constraints that ensure favorable
-lifestyle changes (reduce sugary drinks, increase exercise, lower BMI, etc.)
-never increase predicted risk. All five families are benchmarked together in
+Trains five model families with monotonic constraints and evaluates directional
+consistency under seven specified favorable scenarios on every shared test row. All five families are benchmarked together in
 `intervention_benchmark.py`.
 
 ## Scripts
@@ -19,6 +18,7 @@ never increase predicted risk. All five families are benchmarked together in
 | `train_monotonic_catboost.py` | Monotonic CatBoost |
 | `train_monotonic_ebm.py` | Monotonic EBM (most interpretable) |
 | `train_monotonic_logistic.py` | Monotonic logistic (statistical baseline) |
+| `evaluate_saved_models.py` | Reevaluate exact saved artifacts on shared rows |
 | `intervention_benchmark.py` | Consolidate all 5 families into one report |
 | `intervention_scenarios.py` | Per-patient what-if scenario scoring |
 
@@ -37,15 +37,16 @@ python digihealth_risk/phase_5/train_monotonic_ebm.py
 python digihealth_risk/phase_5/train_monotonic_logistic.py
 ```
 
-### Step 2: Consolidated benchmark
+### Step 2: Shared-cohort reevaluation and consolidated benchmark
 ```bash
+python digihealth_risk/phase_5/evaluate_saved_models.py
 python digihealth_risk/phase_5/intervention_benchmark.py
 ```
 
-### Step 3: Per-patient scenario scoring (optional demo)
+### Step 3: Per-patient scenario scoring (optional; replace the synthetic identifier with an authorized local patient identifier)
 ```bash
 python digihealth_risk/phase_5/intervention_scenarios.py \
-  --patient-id "76562/29" --horizons 1 3 5
+  --patient-id "SYNTHETIC-001" --horizons 1 3 5
 
 # Batch preset simulation (100 patients, 3-year horizon)
 python digihealth_risk/phase_5/intervention_scenarios.py \
@@ -56,7 +57,9 @@ python digihealth_risk/phase_5/intervention_scenarios.py \
 
 | File | Description |
 |------|-------------|
-| `phase_6_v2_ablation_metrics.csv` | XGBoost monotonic vs unconstrained metrics |
+| `phase_6_v2_ablation_metrics.csv` | XGBoost monotonic metrics |
+| `publication_intervention_metrics.csv` | Shared-cohort artifact metrics |
+| `publication_intervention_safety.csv` | Matching safety evidence and artifact/cohort hashes |
 | `phase_6_v2_catboost_ablation_metrics.csv` | CatBoost ablation |
 | `phase_6_v2_lightgbm_ablation_metrics.csv` | LightGBM ablation |
 | `phase_6_v2_ebm_ablation_metrics.csv` | EBM ablation |

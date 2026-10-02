@@ -39,7 +39,7 @@ Also produces: `patient_year_long.pkl`, `phase_0_eda_report.md`, CSV samples.
 |------|-------------|
 | `phase_0_modeling_table.pkl` | Default rolling table (N=1, M=1), ~42k rows |
 | `phase_0_modeling_table_horizon_{N}_history_{M}.pkl` | Grid variant |
-| `patient_year_long.pkl` | Long-format censored patient-year panel |
+| `patient_year_long.pkl` | Full long-format patient-year panel before modeling-table eligibility filtering |
 | `patient_split.csv` | Canonical 60/20/20 patient split (auto-generated) |
 
 ## Expected runtime
@@ -67,3 +67,10 @@ Requires Step 1 above (`patient_year_long.pkl` and `phase_0_modeling_table.pkl`)
 | `phase_0_2_report.md` | Full summary |
 
 Runtime: roughly 5-10 min.
+
+## Supplementary cohort accounting
+
+After phase 4, `python digihealth_risk/phase_0/build_cohort_figure.py` writes
+`publication_cohort_accounting.csv` and PNG/PDF figures under phase-0 outputs.
+The figure separates eligible rows, held-out test rows, and shared-row alignment
+exclusions. It never writes into a versioned thesis folder.

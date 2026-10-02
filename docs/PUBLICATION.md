@@ -1,0 +1,177 @@
+# HealthCom methods and supplementary thesis analyses
+
+This repository implements the research workflow behind the fixed HealthCom
+camera-ready paper and provides supplementary thesis analyses. It releases code
+and synthetic examples, not the private cohort or a promise of public numerical
+reproduction. Exact historical results can also depend on software versions and
+artifacts that were not recorded at the time.
+
+## Inputs and outcome
+
+`datasets/df_final.pkl` is a trusted pandas pickle with one row per patient.
+The study source has 6,892 patients and 121 columns covering 2005 through 2016.
+Only load pickle files from a trusted source; the public synthetic workflow
+constructs its own file locally.
+
+| Fields | Meaning and expected representation |
+| --- | --- |
+| `PatientId` | Unique, nonmissing patient identifier; used for grouping, never a predictor |
+| `date_of_birth`, `gender` | Date-like birth date and categorical sex field |
+| `dm_first_degree_relative`, `cooking_method`, `sleep_quality`, `smoking_status`, `alcohol_status` | Categorical questionnaire fields |
+| `total_sugary_week`, `total_veg_fruit_week`, `total_exercise_week`, `total_phy_activity_week`, `sleep_hours` | Numeric questionnaire fields |
+| `FBS_YEAR`, `BMI_YEAR`, `Pulse_YEAR`, `BL_pres1_YEAR`, `BL_pres2_YEAR`, `Waist_YEAR` | Annual numeric clinical measurements, with NaN for missing observations |
+| `MAX_FBS_up_to_YEAR` | Maximum observed fasting blood sugar through that year, NaN before any reading |
+| `DM_status_up_to_YEAR` | Study categories: non-DM ≤100, pre-DM >100 through 125, DM >125 mg/dL |
+| `AtRisk_YEAR` | 0 for non-DM, 1 for pre-DM or DM, NaN if status is unknown |
+
+Each `YEAR` field exists for every year 2005–2016. The artificial schema example
+is constructed in `digihealth_risk/publication/synthetic.py`; its values and
+distributions are invented and do not describe the private cohort.
+
+The pipeline consumes the supplied cumulative status labels. A prediction at
+source year T targets `AtRisk` at T+N, with N=1–5. Source rows must be known
+non-at-risk, precede first onset, and have a known target. Because status is
+cumulative, a known target does not necessarily mean FBS was measured in the
+target year. History M=1,3,5 includes T and is truncated at the study's start;
+M counts calendar years, not attended visits.
+
+Annual clinical features and cumulative glucose predictors use years through T.
+Questionnaire values are broadcast across all years under an explicit static
+lifestyle assumption. Their collection dates are unknown, so the annual-feature
+checks do not establish prospective availability of questionnaire responses.
+
+## Training and evaluation
+
+All families use `apply_canonical_split`: sorted patient identifiers, seed
+20260501, nominal 60/20/20 assignment. Statistical, raw tree, survival, and
+monotonic training use the effective 80% training pool. Calibration fits trees
+on 60%, calibrators on 20%, and evaluates on the held-out 20%. This difference
+in training allocations means the cross-track performance gap does not isolate
+the causal effect of monotonic constraints.
+
+Numeric predictors are imputed using training-derived values. Tree pipelines
+also impute categorical predictors using their training mode; statistical
+preprocessing has family-specific categorical and missingness handling.
+Missingness indicators remain predictors. The paper's wording “rather than
+imputed” should be read alongside this implementation clarification.
+
+Tree class weighting is available in phase 2 with `--use-class-weights`, but the
+shared-leaderboard tree fits use `use_class_weights=False`. This differs from
+the paper's general weighting description. Research logistic regression uses
+summed negative log likelihood plus `0.5 * 0.01 * ||beta||²`, with an unpenalized
+intercept; the manuscript describes mean loss. The refactor preserves the fit's
+loss scaling instead of silently changing regularization strength.
+
+The final screening comparison requires 28 configurations per horizon:
+18 tree instances (2 families × 3 histories × 3 calibrations), 6 statistical
+instances (2 families × 3 histories), and 4 survival instances (landmark Cox
+and two-stage histories 1,3,5). Old optional GEE v1 files do not enter this
+publication comparison. Duplicate occasions, conflicting targets, missing
+configurations, and an empty shared intersection are errors.
+
+PR-AUC means sklearn average precision in the shared leaderboard and corrected
+phase-1 metrics. The earlier phase-1 logistic routine used trapezoidal PR
+integration and did not average tied ROC ranks. Consequently, some historical
+phase tables differ from the final leaderboard even for identical predictions.
+
+Nominal leaders are chosen retrospectively by test metrics. No claim is made
+that this selection procedure has been evaluated on an additional untouched
+cohort. Threshold diagnostics optimized on test outcomes remain descriptive;
+calibration-selected thresholds retain their distinct provenance.
+
+## Bootstrap and directional checks
+
+`phase_4/bootstrap_significance.py` uses paired patient-cluster resampling,
+2,000 replicates, percentile 95% intervals, and seed 20260501 with deterministic
+per-comparison offsets. Multiplicity weights retain every occasion belonging
+to a resampled patient. Both models use the all-family shared cohort.
+
+The original significance script compared tree versus statistical leaders and
+the overall leader versus **two-stage survival with M=5**. That fixed survival
+reference is the default. The manuscript's phrase “best survival” is broader
+than the implemented historical comparison. A separately named sensitivity
+analysis selects the actual best survival configuration:
+
+```bash
+python digihealth_risk/phase_4/bootstrap_significance.py --survival-reference best
+```
+
+This writes `publication_bootstrap_best_survival.csv`, separate from the default
+`publication_bootstrap.csv`. Intervals concern the named retrospective fits;
+they do not account for the full model-selection process.
+
+All five monotonic families now share seven favorable presets: halve sugar,
+reduce sugar to the training minimum, increase exercise/activity/fruit and
+vegetables to at least the training 75th percentile, reduce BMI by one, and
+combine the lifestyle changes. Clipping never reverses the intended feature
+change; missing input values remain missing. The scenario modifies current
+inputs while leaving historical summaries fixed. Glucose-derived features are
+refreshed when glucose changes, and an established calendar origin is retained.
+
+Passing means zero increases greater than **1e-10 score points on the 0–100
+scale** across every shared test row and all seven presets. These checks are
+scenario-specific, not evidence of causal benefit or unrestricted clinical
+safety. `evaluate_saved_models.py` reevaluates all 45 monotonic configurations;
+safety is joined to prediction performance by exact configuration, artifact
+SHA-256, cohort fingerprint, scenario suite, and tolerance. Missing evidence
+cannot be replaced by a better-performing safety row from another history.
+
+## Claim to command mapping
+
+Commands below run from the repository root after their prerequisite phases.
+`bash reproduce.sh --profile healthcom --fail-fast` orders the primary workflow;
+`--profile thesis` adds supplementary EDA, statistical comparisons, and cohort
+accounting. Use `--dry-run` to inspect the commands without private data.
+
+| Evidence | Command or module | Generated evidence |
+| --- | --- | --- |
+| Cohort, target, 15 rolling tables | `phase_0/build_modeling_tables.py --horizon-years N --history-years M` | Modeling tables and EDA summaries |
+| GEE and logistic history grid | `phase_1/gee_horizon_grid.py`, `phase_1/logistic_horizon_grid.py` | Predictions, coefficients, metrics for each history |
+| GLMM comparator | `phase_1/glmm_gpboost_horizon_grid.py --history-years 5` | GPBoost marginal predictions and comparator metrics |
+| Tree and slope grid | `phase_2/train_tree_models.py`, `lmm_slope_features.py`, `horizon_history_grid.py` | Grid and slope comparisons |
+| LightGBM comparator | `phase_2/lightgbm_exclusion_benchmark.py` | Head-to-head metric tables |
+| Survival and history framing | `phase_3/landmark_cox.py`, `two_stage_survival.py --history-window M --output-prefix phase_3_3_v2_mM` | Rolling survival predictions |
+| Calibration, thresholds, Table I and full ranking | `phase_4/calibrate_trees.py`, `threshold_optimization.py`, `cross_family_comparison.py` | 140-row ranking, threshold diagnostics, shared-cohort counts |
+| Patient-cluster inference | `phase_4/bootstrap_significance.py` | Named comparisons and bootstrap intervals |
+| Data and GEE interpretability | `phase_4/feature_effects_analysis.py` | Cohen's d and saved GEE coefficient evidence |
+| Cross-family importance | `python -m digihealth_risk.publication.feature_importance` | Research tree refits and saved statistical coefficients, with provenance |
+| Feature-engineering ablation | `python -m digihealth_risk.publication.feature_ablation` | Paired current fits with/without explicit engineered terms |
+| Monotonic track | Five `phase_5/train_monotonic_*.py` scripts, then `evaluate_saved_models.py` and `intervention_benchmark.py` | Exact-artifact metrics, scenario results, and intervention ranking |
+| Calendar-time ablation | `phase_7/train_trees_no_year.py`, `calibrate_trees_no_year.py`, `train_monotonic_no_year.py`, `compare_with_baseline.py` | Family-specific no-year differences |
+| Numerical figures and tables | `python -m digihealth_risk.publication.report` | Top-five CSV, dual-track/history/family/survival/ablation/importance figures, manifest |
+| Thesis cohort accounting | `phase_0/build_cohort_figure.py` | Eligible, held-out, shared, and excluded row counts, PNG/PDF |
+| Thesis exploratory evidence | `phase_0/eda_depth.py`, `phase_1/compare_statistical_grid.py` | Missingness, correlations, temporal summaries, comparator tables |
+
+Paths abbreviated as `phase_N/...` are inside `digihealth_risk/`. The M=1,N=1
+phase-0 table retains its historical unsuffixed filename. Research outputs are
+written under ignored `outputs/` directories, never into versioned manuscripts.
+
+The current feature ablation removes `Year_centered_sq`, glucose hinges, and
+FBS/BMI/cumulative-FBS × Age terms where present, keeping the current base
+predictors and missingness handling fixed. Historical v1 code was not recovered;
+these results must not be relabeled as an exact reproduction of the printed
+v1-to-v2 decimals. Cross-family importance likewise identifies tree refits
+rather than attributing deployment-model importance to frozen research fits.
+
+The thesis's numerical figures are regenerated from these tables with current
+plotting code, not identical historical styling. Conceptual illustrations
+(pipeline, dual-track architecture, split schematic, deployment, and construct
+validity) are authored manuscript assets rather than fitted numerical outputs.
+`Sessions/appendix.tex` is not included in the compiled V7 thesis; the active
+appendices are `appendix_v2_part1.tex` and `appendix_v2_part2.tex`.
+
+## Artifacts and provenance
+
+`publication/report.py` records the code revision, dirty-worktree status,
+Python/package versions, and hashes of its aggregate input tables. Historical
+prediction files may predate this manifest; a report manifest does not establish
+which training environment created those files. The pre-refactor code revision
+was `0ca3c54f6a6ae41f8fa93f58fd004c043dcc282d`; previous local results were
+preserved before reevaluation. Dependency pins now describe the validated
+`digihealth` environment, including XGBoost 3.3.0, not an inferred historical fit.
+
+Raw data, split identities, patient-level predictions, serialized models, and
+local evidence snapshots remain excluded from Git. Synthetic outputs are
+explicitly artificial. Distribution of trained artifacts is outside this code
+release. Serving models and the BHI exporter retain their separate documented
+purposes and interfaces.

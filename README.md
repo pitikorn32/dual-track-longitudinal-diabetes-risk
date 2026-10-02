@@ -1,85 +1,97 @@
-# dual-track-longitudinal-diabetes-risk
+# Dual track longitudinal diabetes risk
 
-Production implementation of a longitudinal diabetes-risk prediction model that
-predicts diabetes risk from 12-year Thai healthcare data (6,892 patients,
-2005-2016).
+Research code accompanying the IEEE HealthCom paper **Dual-Track Longitudinal
+Modeling of Diabetes Risk: Horizon-Specific Screening and Intervention-Safe
+Scoring**, with supplementary analyses for the extended thesis.
 
-## Layout
+The study compares screening predictions and monotonic what-if scores across
+five prediction horizons and three history windows. HealthCom is the primary
+workflow; thesis supplements and serving variants are identified separately.
 
-```
-longitudinal-diabetes-risk/
-├─ digihealth_risk/    modeling pipeline, phases 0-7 (training + research)
-├─ deployment/         standalone dual-track FastAPI serving slice
-├─ reproduce.sh        runs the full phase pipeline in dependency order
-└─ requirements.txt    pinned dependencies for the phase pipeline
-```
+The private patient cohort is **not distributed**. This repository provides the
+methods, input schema, executable analyses, and an entirely synthetic example.
+The example verifies software behavior; it cannot reproduce the paper's numbers.
 
-The repository has two parts, each with its own README:
+## Start without private data
 
-- **`digihealth_risk/`** is the modeling pipeline: data engineering, statistical
-  models, tree models, survival models, calibration, monotonic intervention
-  models, and a deployment phase, organised as phase scripts. See
-  `digihealth_risk/README.md` for the full run order.
-- **`deployment/`** is the standalone production slice: a dual-track FastAPI
-  service (`/predict`, `/predict/interventions`) plus the script that exports
-  its model artifacts. It is self-contained and has no imports into the phase
-  tree. See `deployment/README.md`.
-
-## Data
-
-The source cohort (`datasets/df_final.pkl`, roughly 5.6 MB of de-identified
-patient data) is not committed. Place it at `datasets/df_final.pkl` before
-running the pipeline. Generated artifacts (modeling tables, model files, logs)
-are git-ignored.
-
-## Quick start
+The validated research environment uses Python 3.12.13. In a new environment:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python -m digihealth_risk.publication.smoke
+python -m pytest tests -q
+bash reproduce.sh --profile healthcom --dry-run
 ```
 
-Option A: run the entire phase pipeline (training and research, takes hours).
+The smoke command constructs an artificial cohort in a temporary directory,
+builds rolling features, uses the canonical patient split, fits monotonic
+XGBoost, and checks all seven favorable scenarios. It does not read private data
+or alter the study split cache.
+
+## Run the research with authorized data
+
+Place a trusted cohort file at `datasets/df_final.pkl`, following the
+[data schema and methods](docs/PUBLICATION.md). Run from this repository root:
 
 ```bash
-bash reproduce.sh
+bash reproduce.sh --profile healthcom --fail-fast
+bash reproduce.sh --profile thesis --fail-fast  # HealthCom plus thesis supplements
+bash reproduce.sh --profile healthcom --from-phase 4 --fail-fast
 ```
 
-Option B: build only the 15 modeling tables the deployment export needs.
+These runs can take hours. Existing statistical-grid results are reused unless
+`--force` is supplied; other stages may overwrite outputs. Preserve previous
+outputs before rerunning. `--from-phase` expects earlier results to exist.
+`--no-ablation` deliberately skips the calendar-time experiment and therefore
+produces an incomplete publication run. Deployment export is opt-in through
+`--with-deploy`.
+
+For existing trained artifacts and predictions, reevaluate without retraining:
 
 ```bash
-for N in 1 2 3 4 5; do for M in 1 3 5; do
-  python digihealth_risk/phase_0/build_modeling_tables.py \
-    --horizon-years "$N" --history-years "$M"
-done; done
+python digihealth_risk/phase_4/cross_family_comparison.py
+python digihealth_risk/phase_4/bootstrap_significance.py
+python digihealth_risk/phase_5/evaluate_saved_models.py
+python digihealth_risk/phase_5/intervention_benchmark.py
+python -m digihealth_risk.publication.report
 ```
 
-Then export the serving artifacts and start the API:
+Generated patient-level predictions, modeling tables, models, logs, and figures
+remain ignored by Git. Reporting writes aggregate figures and a provenance
+manifest under `digihealth_risk/publication/outputs/`.
 
-```bash
-cd deployment
-pip install -r requirements.txt
-python export_models.py
-uvicorn api:app --port 8000
-```
+## Publication contract
 
-Interactive API docs: http://localhost:8000/docs
+- Patient-grouped 60/20/20 train/calibration/test assignment, seed `20260501`;
+  stages without calibration fold calibration patients into training.
+- Study-defined first onset: cumulative maximum FBS **>100 mg/dL** is at risk;
+  currently at-risk and post-onset rows are excluded.
+- Primary metric: **average precision**, called PR-AUC in the shared leaderboard.
+- Retrospective comparison of 28 configurations per horizon on identical test
+  occasions. Winners are selected from test metrics, not independently validated
+  model selection.
+- Directional what-if checks establish consistency under specified scenarios;
+  they do not estimate causal treatment effects.
+- Lifestyle questionnaire values are assumed time invariant; collection timing
+  and availability at each source year are unverified.
 
-## Conventions
+See [methods and claim-to-command mapping](docs/PUBLICATION.md),
+[validation and known differences](docs/VALIDATION.md), and the
+[glossary](GLOSSARY.md). The camera-ready manuscript is fixed; repository notes
+identify differences between historical descriptions, saved evidence, and the
+current implementation.
 
-- **Canonical patient split**: 60/20/20 by `PatientId`, seed `20260501`. The
-  phase tree and the deployment slice share the same split.
-- **Primary metric**: PR-AUC (handles class imbalance). Secondary: ROC-AUC,
-  Brier score.
+## Repository layout
 
-## Thesis
+| Path | Purpose |
+| --- | --- |
+| `digihealth_risk/phase_0` through `phase_7` | Research engineering, fitting, evaluation, and ablations |
+| `digihealth_risk/publication/` | Synthetic example, current feature ablation, research importance, and reporting |
+| `digihealth_risk/utils/` | Canonical patient split and evaluation checks |
+| `tests/` | Scientific invariants, command-line behavior, and BHI export compatibility |
+| `deployment/` | Separately trained serving variants; see its README |
+| `docs/adr/` | Scope and methodological decisions |
 
-This pipeline accompanies the thesis *Longitudinal Diabetes Risk Prediction from
-12-Year Thai Healthcare Data*. Full methodology and results, including the
-section numbers cited throughout these READMEs, are in the thesis PDF:
-
-[Thesis PDF](THESIS_PDF_URL)
-
-<!-- TODO: replace THESIS_PDF_URL above with the public link to the thesis PDF -->
-
-The thesis figure-generation scripts are not included; every phase script that
-produces a modeling result is.
+The serving API retrains variants and substitutes some families; its outputs
+are not frozen copies of the paper's benchmark fits. The BHI exporter under
+`digihealth_risk/service_exports/` is a separate downstream application.

@@ -51,3 +51,17 @@ python digihealth_risk/phase_4/cross_family_comparison.py
 
 ## Expected runtime
 ~5–20 min total
+
+## Publication inference
+
+```bash
+python digihealth_risk/phase_4/bootstrap_significance.py
+python digihealth_risk/phase_4/feature_effects_analysis.py
+python -m digihealth_risk.publication.feature_importance
+```
+
+The bootstrap uses identical all-family shared rows and a fixed M=5 two-stage
+survival reference, matching the original analysis. `--survival-reference best`
+is a separately named sensitivity analysis. See `docs/PUBLICATION.md` for the
+interpretation and limitations. The final comparison requires all 28 model
+configurations at all five horizons.
