@@ -59,8 +59,8 @@ Tree class weighting is available in phase 2 with `--use-class-weights`, but the
 shared-leaderboard tree fits use `use_class_weights=False`. This differs from
 the paper's general weighting description. Research logistic regression uses
 summed negative log likelihood plus `0.5 * 0.01 * ||beta||²`, with an unpenalized
-intercept; the manuscript describes mean loss. The refactor preserves the fit's
-loss scaling instead of silently changing regularization strength.
+intercept; the manuscript describes mean loss. The implementation retains
+summed-loss scaling.
 
 The final screening comparison requires 28 configurations per horizon:
 18 tree instances (2 families × 3 histories × 3 calibrations), 6 statistical
@@ -148,26 +148,22 @@ written under ignored `outputs/` directories, never into versioned manuscripts.
 
 The current feature ablation removes `Year_centered_sq`, glucose hinges, and
 FBS/BMI/cumulative-FBS × Age terms where present, keeping the current base
-predictors and missingness handling fixed. Historical v1 code was not recovered;
-these results must not be relabeled as an exact reproduction of the printed
-v1-to-v2 decimals. Cross-family importance likewise identifies tree refits
+predictors and missingness handling fixed. Historical v1 code is unavailable;
+this analysis is not an exact reproduction of the printed v1-to-v2 decimals.
+Cross-family importance likewise identifies tree refits
 rather than attributing deployment-model importance to frozen research fits.
 
 The thesis's numerical figures are regenerated from these tables with current
 plotting code, not identical historical styling. Conceptual illustrations
 (pipeline, dual-track architecture, split schematic, deployment, and construct
 validity) are authored manuscript assets rather than fitted numerical outputs.
-`Sessions/appendix.tex` is not included in the compiled V7 thesis; the active
-appendices are `appendix_v2_part1.tex` and `appendix_v2_part2.tex`.
 
 ## Artifacts and provenance
 
 `publication/report.py` records the code revision, dirty-worktree status,
 Python/package versions, and hashes of its aggregate input tables. Historical
 prediction files may predate this manifest; a report manifest does not establish
-which training environment created those files. The pre-refactor code revision
-was `0ca3c54f6a6ae41f8fa93f58fd004c043dcc282d`; previous local results were
-preserved before reevaluation. Dependency pins now describe the validated
+which training environment created those files. Dependency pins describe the validated
 `digihealth` environment, including XGBoost 3.3.0, not an inferred historical fit.
 
 Raw data, split identities, patient-level predictions, serialized models, and

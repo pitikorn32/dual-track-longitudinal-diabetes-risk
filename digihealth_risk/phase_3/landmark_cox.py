@@ -5,7 +5,7 @@ Changes from v1 (phase_3_2_landmark_survival.py) driven by Phase 0.2 EDA:
   - Added `Year_centered_sq` (U-shaped temporal risk trend; Ljung-Box p=0.03)
   - Added `FBS_x_Age` interaction (Phase 0.2 top cross-lag predictor)
   - Added `MAX_FBS_x_Age` interaction (MAX_FBS_up_to_year × Age; cross-lag r=0.582)
-  - NOTE: FBS_hinge_100 / FBS_hinge_125 excluded despite plan — the modeling table
+  - FBS_hinge_100 / FBS_hinge_125 are excluded because the modeling table
     only contains non-at-risk rows (FBS ≤ 100 mg/dL by construction), making both
     features all-zero (std=0) and causing a singular Cox Hessian.
 

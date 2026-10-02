@@ -220,6 +220,8 @@ __marimo__/
 # ── DigiHealth pipeline artifacts ─────────────────────────────
 # Internal planning notes stay local.
 /docs/adr/
+/docs/internal/
+/docs/plans/
 
 # De-identified patient data is never committed to this repository.
 datasets/

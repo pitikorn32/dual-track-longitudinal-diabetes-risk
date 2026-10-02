@@ -13,10 +13,9 @@ All other features, including patient-relative time signals (`Age`,
 `years_since_last_fbs`, `has_fbs_this_year`, `is_missing_last_year`) and
 rolling history-window slopes, are retained.
 
-The goal is to quantify how much the calendar-time features contribute to
-in-sample predictive performance, and thereby inform whether they should be
-dropped from the deployed model for construct validity (so the same patient
-state scored in 2026 vs 2027 produces the same risk).
+The ablation measures the contribution of calendar-time features to predictive
+performance within the study period. Removing these features makes predictions
+invariant to calendar year when all other inputs are held fixed.
 
 ## Why this matters
 
@@ -30,8 +29,7 @@ but raises two problems at deployment:
 2. **OOD extrapolation**: when deployed in 2026, `Year_centered_sq` is far
    above any value seen in training (440+ vs a training max of 121).
 
-Phase 7 produces the head-to-head numbers needed to decide whether the
-in-sample gain is worth those deployment costs.
+Phase 7 reports predictive differences between the two feature sets.
 
 ## How it works
 
@@ -98,16 +96,17 @@ All written under `digihealth_risk/phase_7/outputs/`:
 - For PR-AUC and ROC-AUC: positive Δ = dropping Year helped.
 - For Brier: positive Δ = dropping Year hurt (lower Brier is better).
 
-If |Δ PR-AUC| < 0.005 across the grid, the Year features were doing very
-little: the deployment-time fix is essentially free. If Δ is systematically
-negative, the in-sample temporal-drift adjustment was load-bearing, and the
-thesis needs to weigh that against the construct-validity argument in §6.7.
+A consistently negative Δ PR-AUC indicates lower measured predictive
+performance without calendar-year features. These comparisons do not establish
+performance in a future deployment population.
 
 ## Note on deployment
 
-Phase 7 deliberately does **not** re-export phase 6 deployment artifacts.
-This is a metrics-only ablation. If the deltas support dropping Year features
-from production, modify `digihealth_risk/phase_6/api.py` and
-`export_models.py` to omit `Year_centered` and `Year_centered_sq` from the
-inference feature set, and re-run `export_models.py` against either the
-existing phase 5 outputs (kept) or the phase 7 outputs (re-trained).
+Phase 7 writes research metrics and artifacts. The separately trained no-year
+serving variant is exported through:
+
+```bash
+python digihealth_risk/phase_6/export_models.py --no-year
+```
+
+See the [phase 6 documentation](../phase_6/README.md) for its inputs and API.

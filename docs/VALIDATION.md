@@ -1,18 +1,15 @@
-# Publication refactor validation
+# Software validation and known result differences
 
 Validated on 2026-10-02 in the existing `digihealth` conda environment,
 Python 3.12.13. The pinned requirements describe this tested environment;
-installation into a fresh environment was not tested. The HealthCom v6
-camera-ready manuscript and compiled thesis V7 were read as references and
-were not edited.
+installation into a fresh environment was not tested. Publication references
+are the HealthCom v6 camera-ready paper and thesis V7.
 
 ## Scope of execution
 
 This validation reevaluated saved research predictions and trained artifacts,
 ran targeted research refits, and exercised the synthetic workflow. It was
-**not a fresh end-to-end retraining of every phase**. A local ignored snapshot
-preserves pre-refactor outputs and serving artifacts from code revision
-`0ca3c54f6a6ae41f8fa93f58fd004c043dcc282d`, with environment metadata.
+**not a fresh end-to-end retraining of every phase**.
 Saved predictions do not have complete historical training provenance.
 
 | Check | Result |
@@ -43,8 +40,7 @@ refresh, patient-bootstrap multiplicity, and runner argument handling.
 
 The source-label audit found no disagreement between supplied cumulative
 categories and the published study cutoffs (non-DM ≤100, pre-DM >100 through
-125, DM >125 mg/dL). The earlier contributor guide used different cutoffs;
-that guide was corrected without relabeling the study. This does not establish
+125, DM >125 mg/dL). This does not establish
 prospective availability of the questionnaire fields.
 
 ## Current shared-cohort evidence
@@ -72,8 +68,7 @@ the available saved predictions select CatBoost (AP 0.395308). The saved
 monotonic XGBoost result is 0.406895 versus 0.4087 in the paper. Historical
 artifact/software differences remain unresolved; the current environment uses
 XGBoost 3.3.0 rather than the former requirements pin of 2.0.3. A version
-difference alone does not establish the cause. Current results are retained
-without changing labels or selecting artifacts to force the printed decimals.
+difference alone does not establish the cause.
 
 ## Bootstrap interpretation
 
@@ -106,5 +101,4 @@ an explicit research assumption.
 
 Private data, identifiers, predictions, serialized models, figures, and local
 snapshots remain ignored by Git. The report manifest records the reporting
-revision and input hashes, not an invented historical training provenance.
-No remote publication or push is part of this local validation.
+revision and input hashes; historical training provenance remains incomplete.
