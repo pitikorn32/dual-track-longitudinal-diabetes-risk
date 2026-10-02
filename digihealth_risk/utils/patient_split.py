@@ -46,15 +46,19 @@ def _install_numpy_pickle_compat() -> None:
     sys.modules.setdefault("numpy._core.numeric", np_numeric)
 
 
-def _build_split_from_source() -> pd.DataFrame:
-    if not SOURCE_DATA.exists():
+def _build_split_from_source(source_path: Path | None = None) -> pd.DataFrame:
+    source_path = Path(source_path) if source_path is not None else SOURCE_DATA
+    if not source_path.exists():
         raise FileNotFoundError(
-            f"Cannot build canonical patient split: source data missing at {SOURCE_DATA}"
+            f"Cannot build canonical patient split: source data missing at {source_path}"
         )
     _install_numpy_pickle_compat()
-    df = pd.read_pickle(SOURCE_DATA)
+    df = pd.read_pickle(source_path)
     if "PatientId" not in df.columns:
-        raise ValueError(f"PatientId column not found in {SOURCE_DATA}")
+        raise ValueError(f"PatientId column not found in {source_path}")
+
+    if df["PatientId"].isna().any() or df.empty:
+        raise ValueError("Canonical cohort requires observed patient identifiers")
 
     patients = np.asarray(
         sorted(df["PatientId"].astype(str).drop_duplicates().tolist()),
@@ -85,16 +89,28 @@ def _build_split_from_source() -> pd.DataFrame:
     return pd.DataFrame({"PatientId": patients, "split": splits})
 
 
-def load_canonical_split(*, rebuild: bool = False) -> pd.DataFrame:
+def load_canonical_split(
+    *, rebuild: bool = False, source_path: Path | None = None,
+    cache_path: Path | None = None,
+) -> pd.DataFrame:
     """Return the canonical (PatientId, split) frame, building the cache if needed."""
-    if SPLIT_CACHE.exists() and not rebuild:
-        cached = pd.read_csv(SPLIT_CACHE, dtype={"PatientId": str})
-        if set(cached.columns) >= {"PatientId", "split"} and set(cached["split"]).issubset(VALID_SPLITS):
+    if source_path is not None and cache_path is None:
+        raise ValueError('A custom source requires an explicit isolated split cache')
+    cache_path = Path(cache_path) if cache_path is not None else SPLIT_CACHE
+    if cache_path.exists() and not rebuild:
+        cached = pd.read_csv(cache_path, dtype={"PatientId": str})
+        if (
+            set(cached.columns) >= {"PatientId", "split"}
+            and set(cached["split"]).issubset(VALID_SPLITS)
+            and not cached.empty
+            and not cached[["PatientId", "split"]].isna().any().any()
+            and not cached["PatientId"].duplicated().any()
+        ):
             return cached
 
-    split_df = _build_split_from_source()
-    SPLIT_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    split_df.to_csv(SPLIT_CACHE, index=False)
+    split_df = _build_split_from_source(source_path)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    split_df.to_csv(cache_path, index=False)
     return split_df
 
 
@@ -119,13 +135,17 @@ def apply_canonical_split(
     df: pd.DataFrame,
     *,
     return_calibration: bool = False,
+    source_path: Path | None = None,
+    cache_path: Path | None = None,
 ) -> tuple[pd.DataFrame, ...]:
     """Split ``df`` into (train, test) or (train, calibration, test) by PatientId.
 
     The returned frames are .copy() of the original rows preserving original order.
     When ``return_calibration`` is False, calibration patients are folded into train.
+    Synthetic or alternate cohorts must supply both source_path and cache_path;
+    they use the same algorithm without replacing the study's cached assignment.
     """
-    split_df = load_canonical_split()
+    split_df = load_canonical_split(source_path=source_path, cache_path=cache_path)
     assignment = _join_split(df, split_df)
 
     test_mask = assignment.eq("test").to_numpy()

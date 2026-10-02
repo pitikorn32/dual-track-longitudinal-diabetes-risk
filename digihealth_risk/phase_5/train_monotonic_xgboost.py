@@ -152,7 +152,7 @@ def build_xgboost(constraints: tuple[int, ...]) -> XGBClassifier:
     )
 
 
-def fit_monotonic_model(train_df: pd.DataFrame) -> dict[str, Any]:
+def fit_monotonic_model(train_df: pd.DataFrame, *, n_jobs: int = -1) -> dict[str, Any]:
     numeric_features, categorical_features = get_feature_columns(train_df)
     feature_columns = numeric_features + categorical_features
     preprocessor = make_preprocessor(numeric_features, categorical_features)
@@ -160,6 +160,7 @@ def fit_monotonic_model(train_df: pd.DataFrame) -> dict[str, Any]:
     transformed_names = [str(name) for name in preprocessor.get_feature_names_out()]
     constraints = monotone_constraints(transformed_names)
     model = build_xgboost(constraints)
+    model.set_params(n_jobs=n_jobs)
     y_train = train_df["Target_AtRisk_Status"].astype(int).to_numpy()
     model.fit(x_train, y_train)
     return {
