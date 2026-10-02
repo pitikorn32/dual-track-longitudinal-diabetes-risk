@@ -75,9 +75,13 @@ reproducing this published fit requires 2.0.3 in a separate environment.
 This check covers this screening configuration, not an end-to-end validation
 of every phase under 2.0.3.
 
-The saved monotonic XGBoost result is 0.406895 versus 0.4087 in the paper.
-The screening version comparison does not establish the cause of that separate
-difference.
+The three-year monotonic XGBoost fit shows the same version sensitivity. With
+the same training code, data, patient split, and feature settings, version
+2.0.3 gives AP **0.408668**, reproducing the paper's 0.4087; version 3.3.0 gives
+**0.406895**. Each fit reproduces the corresponding saved model's test
+probabilities exactly. Both use 25,680 training occasions and 6,211 test
+occasions. This resolves both three-year XGBoost score differences without
+changing outcome labels or model settings.
 
 ## Bootstrap interpretation
 
@@ -98,6 +102,34 @@ The default command preserves the implemented historical reference and labels
 it explicitly. Neither comparison supports claiming that the four-year leader
 reliably outperforms every survival configuration. These intervals also do not
 adjust for retrospective model selection.
+
+## Feature-ablation metric definitions
+
+The paper's logistic feature-ablation values, 0.174 to 0.191, are reproduced by
+trapezoidal precision-recall integration on the original saved predictions.
+The shared leaderboard instead uses average precision. Calculating both
+metrics on those same original predictions gives:
+
+| Logistic feature set | Trapezoidal PR area | Average precision |
+| --- | ---: | ---: |
+| Earlier features | 0.174084 | 0.176704 |
+| Enriched features | 0.191282 | 0.193980 |
+
+The improvement remains under either metric, but their numerical values are
+not interchangeable. The public evaluation utilities consistently use average
+precision. The current paired feature-removal experiment is separately defined
+in the methods guide and is not identical to the earlier-versus-enriched
+experiment underlying these original predictions.
+
+## Calendar-time aggregation
+
+The original ablation tables support the paper's approximately 0.009 mean
+PR-AUC loss for the tree comparisons: 0.009391 for uncalibrated trees and
+0.009332 for calibrated trees. The monotonic comparison has a different mean
+loss, 0.005944. The paper's horizon-specific changes (about -0.021 at one year
+and near zero from three years onward) match the monotonic comparison.
+These summaries concern different groups of models and should be identified
+separately when reporting an overall mean and horizon-specific changes.
 
 ## Remaining limits
 

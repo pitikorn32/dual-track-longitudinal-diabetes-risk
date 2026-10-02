@@ -147,9 +147,11 @@ written under ignored `outputs/` directories.
 
 The current feature ablation removes `Year_centered_sq`, glucose hinges, and
 FBS/BMI/cumulative-FBS × Age terms where present, keeping the current base
-predictors and missingness handling fixed. The original ablation implementation
-is unavailable, so this analysis does not exactly reproduce the paper's
-comparison between its earlier and refined feature sets.
+predictors and missingness handling fixed. This paired removal experiment is
+different from comparing the paper's earlier and refined implementations, so
+its values need not match that comparison. The original logistic ablation also
+used trapezoidal PR area, whereas this implementation uses average precision;
+see the [metric comparison](VALIDATION.md#feature-ablation-metric-definitions).
 Cross-family importance likewise identifies tree refits
 rather than attributing deployment-model importance to frozen research fits.
 
