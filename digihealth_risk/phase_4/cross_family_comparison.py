@@ -19,6 +19,7 @@ Run from the repository root:
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
@@ -33,6 +34,8 @@ from sklearn.metrics import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from digihealth_risk.utils.evaluation import ranking_metrics, validate_predictions
 PHASE1_OUT = ROOT / "digihealth_risk" / "phase_1" / "outputs"
 PHASE3_2_OUT = ROOT / "digihealth_risk" / "phase_3" / "outputs"
 PHASE3_3_OUT = ROOT / "digihealth_risk" / "phase_3" / "outputs"
@@ -50,17 +53,6 @@ def classification_metrics(y_true: np.ndarray, probability: np.ndarray, threshol
         "recall": float(recall_score(y_true, prediction, zero_division=0)),
         "specificity": float(((~prediction) & (y_true == 0)).sum() / max((y_true == 0).sum(), 1)),
         "f1": float(f1_score(y_true, prediction, zero_division=0)),
-    }
-
-
-def ranking_metrics(y_true: np.ndarray, probability: np.ndarray) -> dict[str, float]:
-    return {
-        "rows": float(len(y_true)),
-        "positives": float(y_true.sum()),
-        "positive_rate": float(y_true.mean()),
-        "roc_auc": float(roc_auc_score(y_true, probability)),
-        "pr_auc": float(average_precision_score(y_true, probability)),
-        "brier": float(brier_score_loss(y_true, probability)),
     }
 
 
@@ -158,6 +150,7 @@ def validate_target_alignment(predictions: pd.DataFrame) -> None:
 
 
 def align_shared_cohort(predictions: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    validate_predictions(predictions, instance_columns=("horizon_years", "model_key", "calibration_method"))
     aligned_parts: list[pd.DataFrame] = []
     summary_rows: list[dict[str, object]] = []
 
@@ -175,7 +168,9 @@ def align_shared_cohort(predictions: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
             .reset_index(name="model_count")
         )
         shared_keys = key_counts[key_counts["model_count"].eq(model_instances)][KEY_COLUMNS].copy()
-        aligned = horizon_df.merge(shared_keys, on=KEY_COLUMNS, how="inner")
+        if shared_keys.empty:
+            raise ValueError(f"No shared evaluation rows for horizon {horizon}")
+        aligned = horizon_df.merge(shared_keys, on=KEY_COLUMNS, how="inner", validate="many_to_one")
 
         summary_rows.append(
             {

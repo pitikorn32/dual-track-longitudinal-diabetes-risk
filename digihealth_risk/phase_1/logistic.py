@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from digihealth_risk.utils.patient_split import apply_canonical_split  # noqa: E402
+from digihealth_risk.utils.evaluation import auc_pr, auc_roc  # noqa: E402
 
 INPUT_PATH = ROOT / "digihealth_risk" / "phase_0" / "outputs" / "phase_0_modeling_table.pkl"
 OUT_DIR = ROOT / "digihealth_risk" / "phase_1" / "outputs"
@@ -267,34 +268,6 @@ def cluster_robust_covariance(
     n_obs, n_params = x.shape
     correction = (n_clusters / (n_clusters - 1)) * ((n_obs - 1) / (n_obs - n_params))
     return correction * bread @ meat @ bread
-
-
-def auc_roc(y_true: np.ndarray, score: np.ndarray) -> float:
-    order = np.argsort(score)
-    ranks = np.empty_like(order, dtype=float)
-    ranks[order] = np.arange(1, len(score) + 1)
-    pos = y_true == 1
-    n_pos = pos.sum()
-    n_neg = len(y_true) - n_pos
-    if n_pos == 0 or n_neg == 0:
-        return float("nan")
-    return float((ranks[pos].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
-
-
-def auc_pr(y_true: np.ndarray, score: np.ndarray) -> float:
-    order = np.argsort(-score)
-    y_sorted = y_true[order]
-    tp = np.cumsum(y_sorted == 1)
-    fp = np.cumsum(y_sorted == 0)
-    total_pos = (y_true == 1).sum()
-    if total_pos == 0:
-        return float("nan")
-    recall = tp / total_pos
-    precision = tp / np.maximum(tp + fp, 1)
-    recall = np.r_[0.0, recall]
-    precision = np.r_[1.0, precision]
-    integrate = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
-    return float(integrate(precision, recall))
 
 
 def classification_metrics(
