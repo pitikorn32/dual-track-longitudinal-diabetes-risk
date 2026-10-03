@@ -1,10 +1,16 @@
 # deployment: DigiHealth Risk Score API
 
-Standalone production slice of the longitudinal diabetes-risk model: a dual-track
+Standalone serving implementation of the longitudinal diabetes-risk model: a dual-track
 FastAPI service plus the script that trains and exports the model artifacts it
 serves. This folder has no imports into the `digihealth_risk/` phase tree; the
 modeling helpers it needs are vendored in `modeling.py` and `patient_split.py`,
 so it builds and runs on its own.
+
+The exporter refits serving models from the modeling tables using the canonical
+patient split. These artifacts and their probabilities have their own metrics;
+they are not frozen copies of the HealthCom or thesis benchmark models. At the
+five-year screening horizon, the exporter uses Logistic in place of the GEE
+winner reported in the research comparison.
 
 ## Contents
 
@@ -63,22 +69,30 @@ every horizon. Outputs go to `models_logistic_only/` or
 
 ### Why logistic-only?
 
-The default `/predict` route returns a per-horizon winning family (CatBoost at
+The default `/predict` route uses a fixed serving-family map (CatBoost at
 N=1, XGBoost at N=3, Logistic at N=2/4/5), which means the response
 `model_family` field varies by horizon. The `/logistic_only/*` route tree was
 added for frontend consumers that want a uniform single-family output for
 easier client-side post-processing (e.g. coefficient-based explanations, linear
-score decomposition). Screening trades roughly **0.020 PR-AUC at N=1 and N=3**
-against the mixed-family default and is within ~0.001 at N=2/4/5 (where the
-default already uses Logistic).
+score decomposition). Compare the exported variants' `deployment_metrics*.csv`
+files to assess their performance; manuscript leaderboard scores describe the
+research fits.
 
 Intervention is also exposed under `/logistic_only/*` via
 **monotonic-constrained logistic regression**: coefficient sign bounds enforced
-at fit time guarantee that any favorable preset (reduce sugar, increase
-exercise, etc.) cannot raise the predicted risk. The closed-form sigmoid
-prediction path is identical to the unconstrained logistic; only the fit
-differs. See `digihealth_risk/phase_5/train_monotonic_logistic.py` for the
-modeling validation of this technique.
+at fit time specify directional relationships between features and the score.
+The closed-form sigmoid prediction path is identical to the unconstrained
+logistic; only the fit differs. The research scenario checks cover the study
+cohort and specified presets, rather than every possible API request.
+
+Presets clip adjusted feature values to the training range. For an input
+outside that range, clipping can reverse the requested direction: a "reduce
+BMI" preset can change BMI 17 to 18 if the training minimum is 18, and an
+"increase exercise" preset can lower an input above the training maximum.
+Missing intervention values also require assumptions. Consequently these API
+presets do not guarantee a non-increasing score for arbitrary inputs.
+Returned `changed_features` and score differences describe the actual scenario
+applied. Directional consistency does not establish a causal treatment effect.
 
 ## 2. Run the API
 
@@ -87,6 +101,22 @@ uvicorn api:app --reload --port 8000
 ```
 
 Interactive docs: http://localhost:8000/docs
+
+All four health endpoints return HTTP 200 only when their own 30 expected
+models are loaded. An empty or incomplete model set returns HTTP 503 with
+`status` (`models_not_loaded` or `models_incomplete`) and `missing_model_keys`.
+Optional variants report their readiness independently of the default variant.
+
+Numeric measurement, questionnaire, and cumulative-history inputs must be
+finite numbers or null. NaN, infinity, and overflowing values are rejected
+with HTTP 422. Validation responses include each error's `type`, `loc`, and
+`msg`; invalid input values are omitted from those responses.
+
+From the repository root, the public regression checks run with
+`python -m pytest tests/deployment -q` after installing `requirements-dev.txt`.
+They use synthetic inputs and isolated registries to check complete and partial
+model sets, model reloads, and finite-number validation across all prediction
+routes. They do not require private data or trained artifacts.
 
 ## 3. Docker
 
@@ -109,7 +139,7 @@ docker run -p 8000:8000 -v "$(pwd)/models:/app/models" digihealth-risk-api
 | GET | `/models` | List loaded artifacts |
 | GET | `/models/{key}` | One artifact's metadata |
 | POST | `/predict` | Passive-screening risk score (mixed family per horizon) |
-| POST | `/predict/interventions` | Intervention-safe what-if simulation |
+| POST | `/predict/interventions` | What-if simulation using monotonic models |
 | GET / POST | `/no_year/*` | The same route tree with Year features excluded |
 | POST | `/logistic_only/predict` | Screening using logistic at every horizon (uniform single-family output) |
 | POST | `/logistic_only/predict/interventions` | Intervention using monotonic-constrained logistic at every horizon |
@@ -118,10 +148,11 @@ docker run -p 8000:8000 -v "$(pwd)/models:/app/models" digihealth-risk-api
 | GET | `/logistic_only/health`, `/logistic_only/models`, `/logistic_only/models/{key}` | Logistic-only registry surface |
 | GET | `/logistic_only/no_year/health`, `/logistic_only/no_year/models`, `/logistic_only/no_year/models/{key}` | Logistic-only no-Year registry surface |
 
-The `/no_year/*` routes return 404 until `export_models.py --no-year` has been
-run; the `/logistic_only/*` and `/logistic_only/no_year/*` routes return 404
-until `export_models.py --logistic-only` and `--logistic-only --no-year` have
-been run respectively. `/predict` and `/predict/interventions` work regardless.
+Prediction and individual-model routes return 404 when their requested artifact
+is absent. Export the default models before using `/predict` or
+`/predict/interventions`, and export each optional variant to enable its
+predictions. Model-list routes return the loaded artifacts, including an empty
+list when none are available; health routes report incomplete sets with 503.
 
 ## Environment variables
 

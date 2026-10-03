@@ -1,10 +1,10 @@
-"""Deployment model export — dual-track, thesis-aligned (standalone slice).
+"""Deployment model export — dual-track serving variants (standalone slice).
 
-Trains and exports 30 model artifacts (15 per track x 5 horizons x 3 history
+Trains and exports 30 model artifacts (2 tracks x 5 horizons x 3 history
 windows) for the deployment FastAPI in this folder.
 
-    Screening track (/predict)            pure-prediction winners per horizon.
-    Intervention track (/predict/...)     monotonic intervention-safe winners.
+    Screening track (/predict)            fixed serving-family map.
+    Intervention track (/predict/...)     monotonic serving models.
 
 Per-horizon model family:
 
@@ -16,9 +16,9 @@ Per-horizon model family:
     4         | Logistic           | Monotonic CatBoost
     5         | Logistic*          | Monotonic CatBoost
 
-* The thesis screening winner at N=5 is GEE. statsmodels GEE estimators do not
-  serialize cleanly via joblib, so Logistic (a 0.0034 PR-AUC gap) is substituted
-  for deployability. The registry records the substitution explicitly.
+* The research screening winner at N=5 is GEE. This exporter substitutes
+  Logistic for serving and records that choice explicitly in the registry.
+  All models are refitted; their export metrics describe these serving fits.
 
 History windows: M in {1, 3, 5}.
 
@@ -51,8 +51,9 @@ coefficients) at every horizon. Outputs to models_logistic_only/ or
 models_logistic_only_no_year/. Powers the API's /logistic_only/predict,
 /logistic_only/predict/interventions, and matching /no_year/* routes.
 Frontend-driven: a uniform single-family stack for easier client-side
-post-processing while preserving the directional-safety guarantee on the
-intervention track via the monotonic constraints.
+post-processing with coefficient sign constraints on the intervention track.
+API presets clip to training ranges and can reverse a requested change for
+inputs outside those ranges; constraints alone do not guarantee every scenario.
 """
 
 from __future__ import annotations
@@ -270,7 +271,7 @@ def build_ebm(constraints: tuple[int, ...] | None) -> Any:
 
 # ---------------------------------------------------------------------------
 # Logistic fit / predict — kept simple (no monotonic constraints on screening
-# track; the intervention track never uses logistic).
+# track; logistic-only intervention uses the constrained fit below).
 # ---------------------------------------------------------------------------
 
 def fit_logistic_artifact(train_df: pd.DataFrame) -> dict[str, Any]:
@@ -511,17 +512,17 @@ def compute_intervention_presets(train_df: pd.DataFrame) -> dict[str, dict[str, 
         "increase_exercise_to_p75": {
             "max_assignments": {"total_exercise_week": p75("total_exercise_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise exercise sessions to at least the population 75th percentile (never reduce).",
+            "description": "Raise exercise sessions toward at least the population 75th percentile, then clip to the training range.",
         },
         "increase_activity_to_p75": {
             "max_assignments": {"total_phy_activity_week": p75("total_phy_activity_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise physical activity to at least the population 75th percentile (never reduce).",
+            "description": "Raise physical activity toward at least the population 75th percentile, then clip to the training range.",
         },
         "increase_veg_fruit_to_p75": {
             "max_assignments": {"total_veg_fruit_week": p75("total_veg_fruit_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise vegetable/fruit servings to at least the population 75th percentile (never reduce).",
+            "description": "Raise vegetable/fruit servings toward at least the population 75th percentile, then clip to the training range.",
         },
         "reduce_bmi_by_one": {
             "delta_assignments": {"BMI": -1.0},
@@ -708,24 +709,24 @@ def main() -> None:
                 ),
                 "family_per_horizon": SCREENING_FAMILY,
                 "rationale": (
-                    "Frontend-driven choice. Trades ~0.020 PR-AUC at N=1 and "
-                    "N=3 against the mixed-family default in exchange for a "
-                    "uniform logistic output that is easier to post-process "
-                    "client-side."
+                    "Uniform logistic output for client-side post-processing. "
+                    "Compare this export's metrics with the mixed-family "
+                    "export to assess performance."
                 ),
             },
             "intervention": {
                 "purpose": (
                     "Logistic-only alternative intervention track. Monotonic "
-                    "logistic regression with coefficient sign constraints, so "
-                    "favorable lifestyle changes never raise the predicted risk."
+                    "logistic regression with coefficient sign constraints. "
+                    "Preset clipping can reverse a requested change for inputs "
+                    "outside the training range."
                 ),
                 "family_per_horizon": INTERVENTION_FAMILY,
                 "rationale": (
                     "Frontend-driven choice. Pairs with the logistic-only "
                     "screening track so a single family covers both flows. "
-                    "Directional safety is enforced by L-BFGS-B box bounds on "
-                    "the coefficients during fit; inference is the same "
+                    "Coefficient signs are enforced by L-BFGS-B box bounds "
+                    "during fit; inference is the same "
                     "closed-form sigmoid as the unconstrained logistic."
                 ),
             },
@@ -734,16 +735,16 @@ def main() -> None:
         variant_label = "no_year" if args.no_year else "with_year"
         tracks_block = {
             "screening": {
-                "purpose": "Pure-prediction risk score for passive screening (thesis §5.1, §6.4).",
+                "purpose": "Separately fitted risk score for passive screening.",
                 "family_per_horizon": SCREENING_FAMILY,
                 "n5_substitution_note": (
-                    "Thesis screening winner at N=5 is GEE (PR-AUC 0.5282). "
-                    "Logistic (PR-AUC 0.5248) is substituted for deployability "
-                    "since statsmodels GEE does not round-trip through joblib."
+                    "The research screening winner at N=5 is GEE. This "
+                    "exporter uses Logistic instead; deployment_metrics.csv "
+                    "reports the separately fitted serving models' results."
                 ),
             },
             "intervention": {
-                "purpose": "Monotonic intervention-safe risk score for what-if simulation (thesis §5.4, §6.4).",
+                "purpose": "What-if scoring with monotonic serving models and training-range clipping limitations.",
                 "family_per_horizon": INTERVENTION_FAMILY,
             },
         }

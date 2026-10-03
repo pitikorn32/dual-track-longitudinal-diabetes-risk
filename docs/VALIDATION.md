@@ -23,6 +23,10 @@ Tests cover average precision and tied ROC scores, cohort/target alignment,
 required model-grid coverage, patient split isolation, future clinical-value
 exclusion, exact-artifact safety joins, scenario clipping and derived-feature
 refresh, patient-bootstrap multiplicity, and runner argument handling.
+Deployment API checks also cover readiness for each variant's complete model
+set, removal of stale models during reload, and HTTP 422 responses for
+non-finite clinical and questionnaire values. These checks require no trained
+artifacts.
 
 ## Reference evaluation on the study cohort
 

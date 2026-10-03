@@ -2,12 +2,12 @@
 
 Stateless, anonymous risk scoring with two complementary tracks:
 
-    /predict                 Passive-screening track. Uses the best
-                             pure-prediction model family per horizon.
-    /predict/interventions   Active-simulation track. Uses the best
-                             intervention-safe monotonic model family per
-                             horizon, so favorable lifestyle changes can
-                             never increase the returned risk score.
+    /predict                 Passive-screening track with a fixed serving
+                             family map, including Logistic instead of GEE
+                             at the five-year horizon.
+    /predict/interventions   What-if simulation using monotonic model families.
+                             Preset clipping can reverse the intended change
+                             for inputs outside the training range.
 
 The two tracks share the same input schema (raw questionnaire plus annual
 measurements) and the same server-side feature engineering. They differ only in
@@ -20,8 +20,7 @@ Year_centered_sq excluded from training and inference.
 A /logistic_only/* route tree (with a nested /logistic_only/no_year/* tree)
 serves a uniform logistic stack at every horizon for frontend consumers that
 want a single-family output. Screening uses sklearn logistic; intervention
-uses monotonic-constrained logistic so favorable lifestyle changes never
-raise the predicted risk.
+uses monotonic-constrained logistic with the same preset-clipping limitations.
 
 This is the standalone deployment slice. The model artifacts it serves are
 produced by export_models.py in this folder.
@@ -243,14 +242,16 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="DigiHealth Risk Score API (dual-track)",
     description=(
-        "Thesis-aligned diabetes risk scoring with two complementary tracks: "
-        "passive screening (`/predict`) and intervention-safe what-if "
+        "Diabetes risk scoring with separately fitted serving models: "
+        "passive screening (`/predict`) and monotonic-model what-if "
         "simulation (`/predict/interventions`). A `/logistic_only/*` route "
         "tree (with a nested `/logistic_only/no_year/*` variant) serves a "
         "uniform logistic stack for frontend consumers that need a single-"
         "family model: sklearn logistic for screening, monotonic-constrained "
         "logistic for intervention. Send raw questionnaire + annual "
-        "measurements — no patient ID needed."
+        "measurements — no patient ID needed. At five years, screening uses "
+        "Logistic in place of the research GEE winner. Preset clipping can "
+        "reverse the intended change for inputs outside the training range."
     ),
     version="2.0.0",
     lifespan=lifespan,
@@ -432,7 +433,7 @@ def _apply_preset(
     """Apply one named intervention preset to a fully-engineered feature row.
 
     `engineer` controls which feature engineering function is re-applied
-    after the assignments — `_engineer_features` for the main thesis track
+    after the assignments — `_engineer_features` for the with-Year variant
     or `_engineer_features_no_year` for the construct-validity variant.
     """
     adjusted = row.copy()
@@ -454,9 +455,8 @@ def _apply_preset(
         changed[feature] = {"from": orig(feature), "to": new_val}
         adjusted.loc[:, feature] = new_val
 
-    # max_assignments: ratchet upward only. Preserves the monotonic safety
-    # guarantee (p' <= p0) for "increase to p75"-style presets when a patient
-    # is already above the target.
+    # Ratchet to at least the target before training-range clipping.
+    # Clipping can lower a current value above the training maximum.
     for feature, target in preset_def.get("max_assignments", {}).items():
         if feature not in adjusted.columns or target is None:
             continue
@@ -630,7 +630,7 @@ def get_model(
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest) -> PredictResponse:
-    """Passive-screening risk score (thesis pure-prediction winner per horizon)."""
+    """Passive-screening risk score using the fixed serving-family map."""
     artifact = _get_artifact(TRACK_SCREENING, req.horizon_years, req.history_years)
 
     row = build_modeling_row(req)
@@ -655,7 +655,7 @@ def predict(req: PredictRequest) -> PredictResponse:
 
 @app.post("/predict/interventions", response_model=InterventionResponse)
 def predict_interventions(req: InterventionRequest) -> InterventionResponse:
-    """Intervention-safe what-if simulation (monotonic models, thesis §5.4 winners)."""
+    """What-if simulation using monotonic serving models and bounded presets."""
     artifact = _get_artifact(TRACK_INTERVENTION, req.horizon_years, req.history_years)
     presets_store: dict[str, Any] = artifact.get("intervention_presets", {})
 
@@ -858,10 +858,8 @@ def predict_interventions_no_year(req: InterventionRequest) -> InterventionRespo
 # Routes — /logistic_only/* (uniform logistic screening track)
 #
 # Frontend-driven uniform-family screening: logistic regression at every
-# horizon, so the response always has model_family == "logistic". Trades
-# ~0.020 PR-AUC at N=1 and N=3 against the mixed-family default in exchange
-# for an output that is easier to post-process client-side. No intervention
-# endpoint here — intervention scoring stays on /predict/interventions.
+# horizon, so the response always has model_family == "logistic".
+# Intervention routes use monotonic-constrained logistic.
 # Run `python export_models.py --logistic-only` to populate the joblibs.
 # ---------------------------------------------------------------------------
 
@@ -877,9 +875,9 @@ def health_logistic_only(response: Response) -> dict[str, Any]:
         "rationale": (
             "Logistic-only alternative to /predict and /predict/interventions. "
             "Screening uses sklearn logistic at every horizon; intervention uses "
-            "monotonic-constrained logistic (sign bounds on coefficients) so "
-            "favorable presets never raise the predicted risk. Frontend gets a "
-            "uniform family across both flows."
+            "monotonic-constrained logistic (sign bounds on coefficients). "
+            "Both use a uniform family. Preset clipping can reverse a "
+            "requested change outside the training range."
         ),
     }
 
@@ -965,8 +963,7 @@ def health_logistic_only_no_year(response: Response) -> dict[str, Any]:
             "Construct-validity variant of /logistic_only/*. Combines the "
             "uniform-logistic stack (screening + monotonic-logistic intervention) "
             "with the calendar-time-invariant year-ablation training. Use when "
-            "the frontend post-processing constraint and the no-Year construct-"
-            "validity guarantee are both needed."
+            "uniform model families and calendar-year invariance are needed."
         ),
     }
 
@@ -1046,8 +1043,8 @@ def predict_logistic_only_no_year(req: PredictRequest) -> PredictResponse:
 # Intervention scoring backed by monotonic-constrained logistic regression
 # (coefficient sign bounds enforced during fit). Same closed-form sigmoid
 # prediction path as the unconstrained logistic, same intervention preset
-# definitions, but with the directional-safety guarantee preserved by the
-# sign constraints. Run `python export_models.py --logistic-only` (and
+# definitions and training-range clipping limitations. Run
+# `python export_models.py --logistic-only` (and
 # `--logistic-only --no-year`) to populate the underlying joblibs.
 # ---------------------------------------------------------------------------
 
