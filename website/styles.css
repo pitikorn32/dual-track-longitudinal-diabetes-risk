@@ -175,6 +175,7 @@ tbody tr.is-selected { background: #f2f8f7; }
 .limitations-grid h3 { font-size: 14px; }
 .limitations-grid p { font-size: 12px; color: var(--muted); margin-bottom: 0; }
 .resource-links { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--line); }
+.paper-availability { font-size: 12px; color: var(--muted); margin: -10px 0 25px; }
 .resource-links > a { display: flex; align-items: center; gap: 16px; padding: 26px 20px; color: var(--ink); text-decoration: none; border-left: 1px solid var(--line); }
 .resource-links > a:first-child { border: 0; padding-left: 0; }
 .resource-links > a:hover h3 { text-decoration: underline; text-underline-offset: 4px; }

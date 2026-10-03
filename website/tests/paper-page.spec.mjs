@@ -19,7 +19,7 @@ test('published results remain available without JavaScript', async ({ browser }
   for (let i = 0; i < published.length; i += 1) {
     await expect(rows.nth(i).locator('th, td')).toHaveText(published[i]);
   }
-  await expect(page.getByRole('link', { name: 'Read the paper' })).toBeVisible();
+  await expect(page.locator('[data-paper-link]').first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download BibTeX' })).toBeVisible();
   await expect(page.locator('.result-explorer')).toBeHidden();
   await context.close();
@@ -92,12 +92,11 @@ test('assets and downloads work from a project subdirectory', async ({ page, req
     expect(new URL(url).pathname).toMatch(/^\/dist\/assets\/|^\/dist\/(styles.css|site.js)$/);
     const response = await request.get(url);
     expect(response.ok(), url).toBeTruthy();
-    if (url.endsWith('.pdf')) expect((await response.body()).subarray(0, 5).toString()).toBe('%PDF-');
   }
   expect(externalAssets).toEqual([]);
   expect((await readdir(new URL('../dist/', import.meta.url))).sort()).toEqual(['assets', 'index.html', 'site.js', 'styles.css']);
   const files = await readdir(new URL('../dist/assets/', import.meta.url), { recursive: true });
-  expect(files.some((file) => /highlight|internal|datasets|joblib|pkl/.test(file))).toBeFalsy();
+  expect(files.some((file) => /highlight|internal|datasets|joblib|pkl|\.pdf$/i.test(file))).toBeFalsy();
 });
 
 test('layout and interactions have no automated accessibility violations', async ({ page }) => {

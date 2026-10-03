@@ -13,7 +13,8 @@ methods, input schema, executable analyses, and an entirely synthetic example.
 The example verifies software behavior; it cannot reproduce the paper's numbers.
 
 Visit the [paper project page](https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/)
-for the method overview, published results, figures, PDF, and citation.
+for the method overview, published results, figures, and citation. The official
+IEEE paper link will be added when available.
 
 ## Start without private data
 

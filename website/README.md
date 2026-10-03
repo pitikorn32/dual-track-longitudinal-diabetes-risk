@@ -2,8 +2,9 @@
 
 A static academic project page for **Dual-Track Longitudinal Modeling of Diabetes
 Risk: Horizon-Specific Screening and Intervention-Safe Scoring**. It presents
-the paper's reported results, two original figures, a six-page camera-ready
-PDF, and links to the research implementation and its validation notes.
+the paper's reported results, two original figures, and links to the research
+implementation and its validation notes. Paper links are placeholders until
+the official IEEE publication URL is available; no paper PDF is distributed.
 
 GitHub Pages address (after deployment):
 <https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/>
@@ -25,7 +26,7 @@ self-hosted with its SIL Open Font License in `assets/fonts/OFL.txt`.
 
 Browser checks cover desktop and mobile layouts, paper-reported results,
 horizon selection, figure expansion and keyboard focus, citation copying and
-its fallback, PDF and asset downloads under a subdirectory URL, accessibility,
+its fallback, public assets and BibTeX downloads under a subdirectory URL, accessibility,
 and useful content with JavaScript disabled.
 
 `npm run build` writes `dist/` from an explicit list of page files and curated
@@ -56,7 +57,12 @@ differences belong in the linked research validation notes. Reported differences
 and lifts use the paper's original precision rather than subtraction of rounded
 table values.
 
-The PDF and reproduced figures retain the paper's **© 2026 IEEE** notice.
+When the official IEEE publication URL becomes available, replace the `href`
+on the three `data-paper-link` anchors in `index.html` and update their
+coming-soon labels and the availability notice. Add a DOI or publisher URL to
+the citation metadata only when the official details are known.
+
+The reproduced figures retain the paper's **© 2026 IEEE** notice.
 The repository's MIT software license does not replace that notice. Figures
 are reproduced unchanged and attributed on the page. The overview illustration
 is conceptual; illustrative diagram scores are not numerical study results.
