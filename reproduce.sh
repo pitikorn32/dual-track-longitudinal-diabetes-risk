@@ -144,8 +144,8 @@ _skip_phase() {
 # ── Verify repo root ─────────────────────────────────────────
 cd "$REPO_ROOT"
 
-if ! $DRY_RUN && [[ ! -f "datasets/df_final.pkl" ]]; then
-    echo "ERROR: datasets/df_final.pkl not found. Place the 5.6 MB source file before running." >&2
+if ! $DRY_RUN && [[ ! -f "datasets/longitudinal_cohort.pkl" ]]; then
+    echo "ERROR: datasets/longitudinal_cohort.pkl not found. Place the 5.6 MB source file before running." >&2
     exit 1
 fi
 

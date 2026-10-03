@@ -4,7 +4,7 @@ Every phase script should import `apply_canonical_split` from here so cross-fami
 comparison runs on the same test patients regardless of which modeling table the
 phase loads.
 
-The split is derived from `datasets/df_final.pkl` (the source of truth for the
+The split is derived from `datasets/longitudinal_cohort.pkl` (the source of truth for the
 6,892-patient cohort) using:
     - `RANDOM_SEED = 20260501`
     - `TEST_PATIENT_FRACTION = 0.20`
@@ -29,7 +29,7 @@ TEST_PATIENT_FRACTION = 0.20
 CALIBRATION_PATIENT_FRACTION = 0.20
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DATA = ROOT / "datasets" / "df_final.pkl"
+SOURCE_DATA = ROOT / "datasets" / "longitudinal_cohort.pkl"
 SPLIT_CACHE = ROOT / "digihealth_risk" / "phase_0" / "outputs" / "patient_split.csv"
 
 VALID_SPLITS = ("train", "calibration", "test")

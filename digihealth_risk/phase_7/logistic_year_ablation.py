@@ -94,8 +94,8 @@ class Preprocessor:
 
 
 def parse_args() -> argparse.Namespace:
-    default_data_path = ROOT / "datasets" / "df_final.pkl"
-    parent_data_path = ROOT.parent / "datasets" / "df_final.pkl"
+    default_data_path = ROOT / "datasets" / "longitudinal_cohort.pkl"
+    parent_data_path = ROOT.parent / "datasets" / "longitudinal_cohort.pkl"
     if not default_data_path.exists() and parent_data_path.exists():
         default_data_path = parent_data_path
 

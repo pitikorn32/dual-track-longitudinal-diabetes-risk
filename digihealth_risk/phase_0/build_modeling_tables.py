@@ -16,7 +16,7 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA_PATH = ROOT / "datasets" / "df_final.pkl"
+DATA_PATH = ROOT / "datasets" / "longitudinal_cohort.pkl"
 OUT_DIR = ROOT / "digihealth_risk" / "phase_0" / "outputs"
 
 YEARS = list(range(2005, 2017))

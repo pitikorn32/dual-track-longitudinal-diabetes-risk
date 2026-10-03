@@ -25,7 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--source-data",
         type=Path,
-        default=SUBMODULE_ROOT / "datasets" / "df_final.pkl",
+        default=SUBMODULE_ROOT / "datasets" / "longitudinal_cohort.pkl",
     )
     parser.add_argument(
         "--release-id",

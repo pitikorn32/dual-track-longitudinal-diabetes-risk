@@ -6,7 +6,7 @@ modeling tables. Each table encodes a specific prediction horizon N and history
 window M. Downstream phases read these tables as their primary input.
 
 ## Prerequisites
-- `datasets/df_final.pkl` must exist (5.6 MB, 6,892 patients, 121 columns)
+- `datasets/longitudinal_cohort.pkl` must exist (5.6 MB, 6,892 patients, 121 columns)
 - Run from the **repository root** (all commands below assume this)
 
 ## Step-by-step

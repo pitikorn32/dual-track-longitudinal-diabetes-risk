@@ -132,5 +132,5 @@ been run respectively. `/predict` and `/predict/interventions` work regardless.
 | `DIGIHEALTH_MODEL_DIR_LOGISTIC_ONLY` | `./models_logistic_only` | With-Year logistic-only artifacts |
 | `DIGIHEALTH_MODEL_DIR_LOGISTIC_ONLY_NO_YEAR` | `./models_logistic_only_no_year` | No-Year logistic-only artifacts |
 | `DIGIHEALTH_PHASE0_DIR` | `../digihealth_risk/phase_0/outputs` | Modeling tables for export |
-| `DIGIHEALTH_DATA` | `../datasets/df_final.pkl` | Source cohort for the split |
+| `DIGIHEALTH_DATA` | `../datasets/longitudinal_cohort.pkl` | Source cohort for the split |
 | `DIGIHEALTH_SPLIT_CACHE` | `../digihealth_risk/phase_0/outputs/patient_split.csv` | Canonical split cache |

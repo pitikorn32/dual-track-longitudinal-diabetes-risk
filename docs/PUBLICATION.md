@@ -7,7 +7,7 @@ demonstrates the software but cannot reproduce the study's numerical results.
 
 ## Inputs and outcome
 
-`datasets/df_final.pkl` is a trusted pandas pickle with one row per patient.
+`datasets/longitudinal_cohort.pkl` is a trusted pandas pickle with one row per patient.
 The study source has 6,892 patients and 121 columns covering 2005 through 2016.
 Only load pickle files from a trusted source; the public synthetic workflow
 constructs its own file locally.

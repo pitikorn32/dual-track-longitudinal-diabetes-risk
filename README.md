@@ -35,7 +35,7 @@ or alter the study split cache.
 
 ## Run the research with authorized data
 
-Place a trusted cohort file at `datasets/df_final.pkl`, following the
+Place a trusted cohort file at `datasets/longitudinal_cohort.pkl`, following the
 [data schema and methods](docs/PUBLICATION.md). Run from this repository root:
 
 ```bash

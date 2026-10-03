@@ -8,7 +8,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "datasets" / "df_final.pkl"
+DATA = ROOT / "datasets" / "longitudinal_cohort.pkl"
 PHASE0 = ROOT / "digihealth_risk" / "phase_0" / "outputs"
 
 
