@@ -59,7 +59,17 @@ shared-leaderboard tree fits use `use_class_weights=False`. This differs from
 the paper's general weighting description. Research logistic regression uses
 summed negative log likelihood plus `0.5 * 0.01 * ||beta||²`, with an unpenalized
 intercept; the manuscript describes mean loss. The implementation retains
-summed-loss scaling.
+summed-loss scaling. These settings preserve the fitted research benchmark;
+they are implementation clarifications to the HealthCom paper and thesis.
+Switching to class-weighted trees or mean loss with the same penalty would
+define a different training procedure and require new evaluation.
+
+The screening-tree setting is named `PUBLICATION_USE_CLASS_WEIGHTS=False`
+in `phase_4/calibrate_trees.py`. Statistical Logistic uses
+`LOSS_REDUCTION="sum"`, `RIDGE_ALPHA=0.01`, and `PENALIZE_INTERCEPT=False`
+in `phase_1/logistic.py`. Equivalently, dividing its entire objective by the
+number of training rows gives mean loss with ridge coefficient `0.01 / n`,
+not `0.01`.
 
 The final screening comparison requires 28 configurations per horizon:
 18 tree instances (2 families × 3 histories × 3 calibrations), 6 statistical
@@ -168,6 +178,15 @@ prediction files may predate this manifest; a report manifest does not establish
 which training environment created those files. The dependencies in
 `requirements.txt` support the current code; they do not identify the software
 versions used to train every model reported in the paper.
+
+New statistical Logistic and phase-4 screening-tree fits write a JSON
+`training_metadata` field in their metrics CSVs. It records the training-row
+count, Python and package versions, and the actual weighting or loss and
+penalty settings. The report manifest collects these records under
+`training_provenance`, with hashes of the source metrics files. Its
+`unrecorded_sources` list identifies older or partially recorded files;
+missing fit information is not filled in using the reporting environment.
+This coverage does not extend to every model family or serving export.
 
 Raw data, split identities, patient-level predictions, and serialized models
 are excluded from the public repository. Synthetic outputs are
