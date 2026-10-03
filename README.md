@@ -98,3 +98,22 @@ differences from the published results.
 The serving API retrains variants and substitutes some families; its outputs
 are not frozen copies of the paper's benchmark fits. The BHI exporter under
 `digihealth_risk/service_exports/` is a separate downstream application.
+
+## Citation
+
+Use [CITATION.cff](CITATION.cff) to cite the software, including the release
+version or commit used in your analysis. Cite the accompanying research as:
+
+- Pitikorn Khlaisamniang, Roongruedee Chaiteerakij, and Patthrarawalai Sirinara.
+  *Dual-Track Longitudinal Modeling of Diabetes Risk: Horizon-Specific Screening
+  and Intervention-Safe Scoring.* IEEE HealthCom.
+- Pitikorn Khlaisamniang. *Development of a Machine Learning Model for Diabetes
+  Risk Prediction.* Master's independent study, Chulalongkorn University.
+
+## Automated checks
+
+The [research checks workflow](.github/workflows/research-checks.yml) installs
+the dependencies on Python 3.12, runs the tests and synthetic example, and
+checks both reproduction profiles with `--dry-run`. It requires no patient
+data. The cohort-dependent export test is skipped when the private cohort is
+absent; CI does not reproduce the study's numerical results.

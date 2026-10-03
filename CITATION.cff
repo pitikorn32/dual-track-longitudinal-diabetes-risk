@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: >-
+  Please cite this software version when using the code, and cite the
+  accompanying HealthCom paper when discussing the research methods.
+type: software
+title: Dual-Track Longitudinal Diabetes Risk
+version: 1.0.0
+authors:
+  - family-names: Khlaisamniang
+    given-names: Pitikorn
+repository-code: https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk
+license: MIT
+abstract: >-
+  Research implementation of horizon-specific diabetes-risk screening and
+  monotonic what-if scoring, with supplementary analyses for the extended
+  thesis. The private patient cohort is not distributed.
+references:
+  - type: conference-paper
+    title: >-
+      Dual-Track Longitudinal Modeling of Diabetes Risk: Horizon-Specific
+      Screening and Intervention-Safe Scoring
+    authors:
+      - family-names: Khlaisamniang
+        given-names: Pitikorn
+      - family-names: Chaiteerakij
+        given-names: Roongruedee
+      - family-names: Sirinara
+        given-names: Patthrarawalai
+    collection-title: IEEE HealthCom
+  - type: thesis
+    title: Development of a Machine Learning Model for Diabetes Risk Prediction
+    authors:
+      - family-names: Khlaisamniang
+        given-names: Pitikorn
+    institution:
+      name: Chulalongkorn University
