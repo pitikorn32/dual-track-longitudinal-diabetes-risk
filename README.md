@@ -12,6 +12,9 @@ The private patient cohort is **not distributed**. This repository provides the
 methods, input schema, executable analyses, and an entirely synthetic example.
 The example verifies software behavior; it cannot reproduce the paper's numbers.
 
+Visit the [paper project page](https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/)
+for the method overview, published results, figures, PDF, and citation.
+
 ## Start without private data
 
 Use Python 3.12 and install the pinned dependencies:
@@ -94,6 +97,7 @@ differences from the published results.
 | `digihealth_risk/utils/` | Canonical patient split and evaluation checks |
 | `tests/` | Scientific invariants, command-line behavior, and BHI export compatibility |
 | `deployment/` | Separately trained serving variants; see its README |
+| `website/` | Academic paper page and GitHub Pages build; see its README |
 
 The serving API retrains variants and substitutes some families; its outputs
 are not frozen copies of the paper's benchmark fits. The BHI exporter under
@@ -117,3 +121,7 @@ the dependencies on Python 3.12, runs the tests and synthetic example, and
 checks both reproduction profiles with `--dry-run`. It requires no patient
 data. The cohort-dependent export test is skipped when the private cohort is
 absent; CI does not reproduce the study's numerical results.
+
+The separate [Paper page workflow](.github/workflows/paper-page.yml) checks the
+academic website on desktop and mobile and deploys website changes from `main` to
+GitHub Pages. See [website setup and checks](website/README.md).

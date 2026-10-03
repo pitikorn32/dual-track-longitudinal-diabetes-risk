@@ -1,0 +1,16 @@
+{
+  "name": "healthcom-paper-page",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && playwright test",
+    "preview": "npm run build && python3 -m http.server 4173 --bind 127.0.0.1 --directory dist"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0"
+  }
+}
