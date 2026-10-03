@@ -1,6 +1,7 @@
 # Research dependencies for Python 3.12.
 # Serving-only installations may use deployment/requirements.txt.
 pandas==3.0.3
+pyarrow==24.0.0
 numpy==2.4.6
 scikit-learn==1.8.0
 scipy==1.17.1
