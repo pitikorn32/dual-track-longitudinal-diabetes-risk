@@ -15,8 +15,9 @@ Run from the repository root:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -29,11 +30,15 @@ sys.path.insert(0, str(ROOT))
 
 from digihealth_risk.utils.patient_split import apply_canonical_split  # noqa: E402
 from digihealth_risk.utils.evaluation import auc_pr, auc_roc  # noqa: E402
+from digihealth_risk.utils.training_provenance import training_metadata  # noqa: E402
 
 INPUT_PATH = ROOT / "digihealth_risk" / "phase_0" / "outputs" / "phase_0_modeling_table.pkl"
 OUT_DIR = ROOT / "digihealth_risk" / "phase_1" / "outputs"
 RANDOM_SEED = 20260501
 RIDGE_ALPHA = 0.01
+# Settings of the fitted research benchmark; see docs/PUBLICATION.md.
+LOSS_REDUCTION = "sum"
+PENALIZE_INTERCEPT = False
 
 CONTINUOUS_FEATURES = [
     "Year_centered",
@@ -102,6 +107,7 @@ class FitResult:
     train_probability: np.ndarray
     test_probability: np.ndarray
     feature_names: list[str]
+    training_metadata: dict = field(default_factory=dict)
 
 
 def install_numpy_pickle_compat() -> None:
@@ -204,13 +210,19 @@ def transform(df: pd.DataFrame, preprocessor: Preprocessor) -> np.ndarray:
 def negative_log_likelihood(
     beta: np.ndarray, x: np.ndarray, y: np.ndarray
 ) -> tuple[float, np.ndarray]:
+    """Summed binary cross-entropy plus (RIDGE_ALPHA / 2) * ||beta||^2.
+
+    The intercept is unpenalized. This preserves the benchmark objective,
+    which differs from mean-loss scaling described in the manuscripts.
+    """
     eta = x @ beta
     nll = np.sum(np.logaddexp(0, eta) - y * eta)
     probability = special.expit(eta)
     gradient = x.T @ (probability - y)
 
     beta_penalty = beta.copy()
-    beta_penalty[0] = 0.0
+    if not PENALIZE_INTERCEPT:
+        beta_penalty[0] = 0.0
     nll += 0.5 * RIDGE_ALPHA * np.dot(beta_penalty, beta_penalty)
     gradient += RIDGE_ALPHA * beta_penalty
     return float(nll), gradient
@@ -240,7 +252,14 @@ def fit_logistic(
     covariance = cluster_robust_covariance(
         x_train, y_train, train_probability, train_df["PatientId"], beta
     )
-    return FitResult(beta, covariance, train_probability, test_probability, preprocessor.feature_names)
+    metadata = training_metadata('logistic', len(train_df), {
+        'class_weighting_enabled': False,
+        'loss_reduction': LOSS_REDUCTION,
+        'ridge_alpha': RIDGE_ALPHA,
+        'penalize_intercept': PENALIZE_INTERCEPT,
+    })
+    return FitResult(beta, covariance, train_probability, test_probability,
+                     preprocessor.feature_names, metadata)
 
 
 def cluster_robust_covariance(
@@ -252,7 +271,8 @@ def cluster_robust_covariance(
 ) -> np.ndarray:
     weights = probability * (1 - probability)
     ridge = np.eye(x.shape[1]) * RIDGE_ALPHA
-    ridge[0, 0] = 0.0
+    if not PENALIZE_INTERCEPT:
+        ridge[0, 0] = 0.0
     bread = np.linalg.pinv((x.T * weights) @ x + ridge)
 
     residual = y - probability
@@ -442,6 +462,7 @@ def main() -> None:
     predictions = test_df[["PatientId", "Year", "target_year", "Target_AtRisk_Status"]].copy()
     predictions["predicted_probability"] = fit.test_probability
 
+    metrics_df['training_metadata'] = json.dumps(fit.training_metadata, sort_keys=True, allow_nan=False)
     coef_table.to_csv(OUT_DIR / f"{args.output_prefix}_coefficients.csv", index=False)
     metrics_df.to_csv(OUT_DIR / f"{args.output_prefix}_metrics.csv", index=False)
     predictions.to_csv(OUT_DIR / f"{args.output_prefix}_test_predictions.csv", index=False)

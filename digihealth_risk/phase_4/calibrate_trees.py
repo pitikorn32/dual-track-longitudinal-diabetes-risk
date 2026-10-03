@@ -20,6 +20,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,10 +53,14 @@ from digihealth_risk.phase_2.train_tree_models import (  # noqa: E402
     make_preprocessor,
 )
 from digihealth_risk.utils.patient_split import apply_canonical_split  # noqa: E402
+from digihealth_risk.utils.training_provenance import training_metadata  # noqa: E402
 
 
 PHASE0_OUT = ROOT / "digihealth_risk" / "phase_0" / "outputs"
 OUT_DIR = ROOT / "digihealth_risk" / "phase_4" / "outputs"
+# The publication screening fits are unweighted, including the base trees
+# used by Platt/isotonic calibration. See docs/PUBLICATION.md.
+PUBLICATION_USE_CLASS_WEIGHTS = False
 
 
 @dataclass(frozen=True)
@@ -149,10 +154,18 @@ def fit_pipeline(
     pipeline = Pipeline(
         steps=[
             ("preprocessor", make_preprocessor(numeric_features, categorical_features)),
-            ("model", build_model(model_name, scale_pos_weight, use_class_weights=False)),
+            ("model", build_model(model_name, scale_pos_weight,
+                                  use_class_weights=PUBLICATION_USE_CLASS_WEIGHTS)),
         ]
     )
     pipeline.fit(x_train, y_train)
+    params = pipeline.named_steps['model'].get_params()
+    pipeline.training_metadata_ = training_metadata(model_name, len(train_df), {
+        'class_weighting_enabled': PUBLICATION_USE_CLASS_WEIGHTS,
+        'scale_pos_weight': params.get('scale_pos_weight'),
+        'class_weights': params.get('class_weights'),
+        'class_weight': params.get('class_weight'),
+    })
     return pipeline
 
 
@@ -331,6 +344,10 @@ def run_config(config: ModelConfig) -> tuple[pd.DataFrame, pd.DataFrame, pd.Data
             "test_rows": float(len(test_df)),
             "test_positives": float(y_test.sum()),
             "test_positive_rate": float(y_test.mean()),
+            "training_metadata": json.dumps(
+                {**pipeline.training_metadata_, 'model_key': config.key,
+                 'horizon_years': config.horizon_years, 'history_years': config.history_years},
+                sort_keys=True, allow_nan=False),
             **rank,
         }
         for strategy, threshold in thresholds.items():

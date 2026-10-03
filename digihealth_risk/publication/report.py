@@ -12,6 +12,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from digihealth_risk.utils.training_provenance import collect_training_metadata
+
 ROOT = Path(__file__).resolve().parents[2]
 P4 = ROOT / 'digihealth_risk/phase_4/outputs'
 P5 = ROOT / 'digihealth_risk/phase_5/outputs'
@@ -145,6 +147,7 @@ def main():
         'python': platform.python_version(),
         'packages': {name: version(name) for name in ['numpy', 'pandas', 'scipy', 'scikit-learn', 'xgboost', 'catboost', 'lightgbm', 'statsmodels', 'interpret']},
         'inputs': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in used},
+        'training_provenance': collect_training_metadata(ROOT),
         'omitted_figures': omitted,
         'limitations': ['Private cohort is not distributed', 'Questionnaire timing is unverified',
                         'Retrospective test-set ranking', 'Current feature-set ablation is not recovered historical v1 code'],
