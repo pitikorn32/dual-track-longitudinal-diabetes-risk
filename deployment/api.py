@@ -6,8 +6,8 @@ Stateless, anonymous risk scoring with two complementary tracks:
                              family map, including Logistic instead of GEE
                              at the five-year horizon.
     /predict/interventions   What-if simulation using monotonic model families.
-                             Preset clipping can reverse the intended change
-                             for inputs outside the training range.
+                             Presets preserve favorable feature directions
+                             after applying training-range bounds.
 
 The two tracks share the same input schema (raw questionnaire plus annual
 measurements) and the same server-side feature engineering. They differ only in
@@ -20,7 +20,7 @@ Year_centered_sq excluded from training and inference.
 A /logistic_only/* route tree (with a nested /logistic_only/no_year/* tree)
 serves a uniform logistic stack at every horizon for frontend consumers that
 want a single-family output. Screening uses sklearn logistic; intervention
-uses monotonic-constrained logistic with the same preset-clipping limitations.
+uses monotonic-constrained logistic with the same guarded presets.
 
 This is the standalone deployment slice. The model artifacts it serves are
 produced by export_models.py in this folder.
@@ -76,6 +76,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from scipy import special
 
+from modeling import BASE_MONOTONE_RULES
 from schemas import (
     ClinicalMeasurement,
     InterventionRequest,
@@ -250,8 +251,8 @@ app = FastAPI(
         "family model: sklearn logistic for screening, monotonic-constrained "
         "logistic for intervention. Send raw questionnaire + annual "
         "measurements — no patient ID needed. At five years, screening uses "
-        "Logistic in place of the research GEE winner. Preset clipping can "
-        "reverse the intended change for inputs outside the training range."
+        "Logistic in place of the research GEE winner. Presets preserve "
+        "favorable feature directions after clipping and skip missing values."
     ),
     version="2.0.0",
     lifespan=lifespan,
@@ -435,6 +436,8 @@ def _apply_preset(
     `engineer` controls which feature engineering function is re-applied
     after the assignments — `_engineer_features` for the with-Year variant
     or `_engineer_features_no_year` for the construct-validity variant.
+    Favorable changes follow the exporter's monotonic directions after clipping.
+    Unknown baseline values remain missing for the fitted preprocessor to handle.
     """
     adjusted = row.copy()
     changed: dict[str, dict[str, float | None]] = {}
@@ -442,49 +445,54 @@ def _apply_preset(
     def clamp(feature: str, value: float) -> float:
         r = ranges.get(feature, {})
         lo, hi = r.get("min"), r.get("max")
-        return float(np.clip(value, lo, hi)) if lo is not None and hi is not None else float(value)
+        lo = lo if lo is not None and np.isfinite(lo) else None
+        hi = hi if hi is not None and np.isfinite(hi) else None
+        return float(np.clip(value, lo, hi)) if lo is not None or hi is not None else float(value)
 
     def orig(feature: str) -> float | None:
         v = adjusted[feature].iloc[0]
         return float(v) if pd.notna(v) else None
 
-    for feature, value in preset_def.get("assignments", {}).items():
+    def set_favorable_value(feature: str, value: float | None) -> None:
         if feature not in adjusted.columns or value is None:
-            continue
-        new_val = clamp(feature, value)
-        changed[feature] = {"from": orig(feature), "to": new_val}
-        adjusted.loc[:, feature] = new_val
-
-    # Ratchet to at least the target before training-range clipping.
-    # Clipping can lower a current value above the training maximum.
-    for feature, target in preset_def.get("max_assignments", {}).items():
-        if feature not in adjusted.columns or target is None:
-            continue
+            return
         current_val = orig(feature)
-        new_val = target if current_val is None else max(current_val, target)
-        new_val = clamp(feature, new_val)
+        if current_val is None or not np.isfinite(value):
+            return
+        rule = BASE_MONOTONE_RULES.get(feature)
+        if rule is None:
+            raise ValueError(f"Preset feature '{feature}' has no monotonic direction")
+        clipped = clamp(feature, value)
+        # A training bound may lie on the adverse side of an out-of-range input.
+        new_val = min(current_val, clipped) if rule.sign == 1 else max(current_val, clipped)
         changed[feature] = {"from": current_val, "to": new_val}
         adjusted.loc[:, feature] = new_val
+
+    for feature, value in preset_def.get("assignments", {}).items():
+        set_favorable_value(feature, value)
+
+    for feature, target in preset_def.get("max_assignments", {}).items():
+        set_favorable_value(feature, target)
 
     for feature, delta in preset_def.get("delta_assignments", {}).items():
         if feature not in adjusted.columns:
             continue
-        current_val = orig(feature) or 0.0
+        current_val = orig(feature)
+        if current_val is None:
+            continue
         new_val = current_val + delta
         floor = preset_def.get("floor_assignments", {}).get(feature)
         if floor is not None:
             new_val = max(new_val, floor)
-        new_val = clamp(feature, new_val)
-        changed[feature] = {"from": orig(feature), "to": new_val}
-        adjusted.loc[:, feature] = new_val
+        set_favorable_value(feature, new_val)
 
     for feature, multiplier in preset_def.get("scale_assignments", {}).items():
         if feature not in adjusted.columns:
             continue
-        current_val = orig(feature) or 0.0
-        new_val = clamp(feature, current_val * multiplier)
-        changed[feature] = {"from": orig(feature), "to": new_val}
-        adjusted.loc[:, feature] = new_val
+        current_val = orig(feature)
+        if current_val is None:
+            continue
+        set_favorable_value(feature, current_val * multiplier)
 
     adjusted = engineer(adjusted)
     return adjusted, changed
@@ -655,7 +663,7 @@ def predict(req: PredictRequest) -> PredictResponse:
 
 @app.post("/predict/interventions", response_model=InterventionResponse)
 def predict_interventions(req: InterventionRequest) -> InterventionResponse:
-    """What-if simulation using monotonic serving models and bounded presets."""
+    """What-if simulation using monotonic serving models and guarded presets."""
     artifact = _get_artifact(TRACK_INTERVENTION, req.horizon_years, req.history_years)
     presets_store: dict[str, Any] = artifact.get("intervention_presets", {})
 
@@ -876,8 +884,8 @@ def health_logistic_only(response: Response) -> dict[str, Any]:
             "Logistic-only alternative to /predict and /predict/interventions. "
             "Screening uses sklearn logistic at every horizon; intervention uses "
             "monotonic-constrained logistic (sign bounds on coefficients). "
-            "Both use a uniform family. Preset clipping can reverse a "
-            "requested change outside the training range."
+            "Both use a uniform family. Presets preserve favorable feature "
+            "directions after clipping and skip missing values."
         ),
     }
 
@@ -1043,7 +1051,7 @@ def predict_logistic_only_no_year(req: PredictRequest) -> PredictResponse:
 # Intervention scoring backed by monotonic-constrained logistic regression
 # (coefficient sign bounds enforced during fit). Same closed-form sigmoid
 # prediction path as the unconstrained logistic, same intervention preset
-# definitions and training-range clipping limitations. Run
+# definitions and favorable-direction guards after training-range clipping. Run
 # `python export_models.py --logistic-only` (and
 # `--logistic-only --no-year`) to populate the underlying joblibs.
 # ---------------------------------------------------------------------------
