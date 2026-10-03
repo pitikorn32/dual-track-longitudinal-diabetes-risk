@@ -52,8 +52,9 @@ models_logistic_only_no_year/. Powers the API's /logistic_only/predict,
 /logistic_only/predict/interventions, and matching /no_year/* routes.
 Frontend-driven: a uniform single-family stack for easier client-side
 post-processing with coefficient sign constraints on the intervention track.
-API presets clip to training ranges and can reverse a requested change for
-inputs outside those ranges; constraints alone do not guarantee every scenario.
+API presets preserve favorable feature directions after training-range clipping
+and skip missing intervention values. Training coverage still limits prediction
+validity outside the observed ranges.
 """
 
 from __future__ import annotations
@@ -502,33 +503,33 @@ def compute_intervention_presets(train_df: pd.DataFrame) -> dict[str, dict[str, 
         "reduce_sugary_to_zero": {
             "assignments": {"total_sugary_week": 0.0},
             "expected_direction": "decrease_or_equal",
-            "description": "Set sugary drink intake to zero.",
+            "description": "Target zero sugary drinks, subject to training bounds without increasing intake; skip missing intake.",
         },
         "reduce_sugary_50pct": {
             "scale_assignments": {"total_sugary_week": 0.5},
             "expected_direction": "decrease_or_equal",
-            "description": "Reduce sugary drink intake by 50%.",
+            "description": "Target a 50% reduction in sugary drinks, subject to training bounds without increasing intake; skip missing intake.",
         },
         "increase_exercise_to_p75": {
             "max_assignments": {"total_exercise_week": p75("total_exercise_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise exercise sessions toward at least the population 75th percentile, then clip to the training range.",
+            "description": "Raise exercise toward the training 75th percentile within training bounds, leaving higher or missing values unchanged.",
         },
         "increase_activity_to_p75": {
             "max_assignments": {"total_phy_activity_week": p75("total_phy_activity_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise physical activity toward at least the population 75th percentile, then clip to the training range.",
+            "description": "Raise physical activity toward the training 75th percentile within training bounds, leaving higher or missing values unchanged.",
         },
         "increase_veg_fruit_to_p75": {
             "max_assignments": {"total_veg_fruit_week": p75("total_veg_fruit_week")},
             "expected_direction": "decrease_or_equal",
-            "description": "Raise vegetable/fruit servings toward at least the population 75th percentile, then clip to the training range.",
+            "description": "Raise vegetable/fruit intake toward the training 75th percentile within training bounds, leaving higher or missing values unchanged.",
         },
         "reduce_bmi_by_one": {
             "delta_assignments": {"BMI": -1.0},
             "floor_assignments": {"BMI": col_min("BMI")},
             "expected_direction": "decrease_or_equal",
-            "description": "Reduce BMI by 1 unit (clamped to training minimum).",
+            "description": "Target a one-unit BMI reduction within training bounds without increasing BMI; skip missing BMI.",
         },
         "combined_lifestyle": {
             "assignments": {"total_sugary_week": 0.0},
@@ -540,7 +541,7 @@ def compute_intervention_presets(train_df: pd.DataFrame) -> dict[str, dict[str, 
             "delta_assignments": {"BMI": -1.0},
             "floor_assignments": {"BMI": col_min("BMI")},
             "expected_direction": "decrease_or_equal",
-            "description": "Combined: zero sugary drinks, exercise/activity/veg ratcheted up to at least p75, BMI minus 1.",
+            "description": "Combine sugary-drink, exercise/activity/vegetable-fruit and BMI targets within training bounds, preserving favorable directions and skipping missing values.",
         },
     }
 
@@ -718,8 +719,8 @@ def main() -> None:
                 "purpose": (
                     "Logistic-only alternative intervention track. Monotonic "
                     "logistic regression with coefficient sign constraints. "
-                    "Preset clipping can reverse a requested change for inputs "
-                    "outside the training range."
+                    "Presets preserve favorable feature directions after "
+                    "training-range clipping and skip missing values."
                 ),
                 "family_per_horizon": INTERVENTION_FAMILY,
                 "rationale": (
@@ -744,7 +745,7 @@ def main() -> None:
                 ),
             },
             "intervention": {
-                "purpose": "What-if scoring with monotonic serving models and training-range clipping limitations.",
+                "purpose": "What-if scoring with monotonic serving models, guarded training-range clipping and missing-value preservation.",
                 "family_per_horizon": INTERVENTION_FAMILY,
             },
         }

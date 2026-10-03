@@ -85,14 +85,20 @@ The closed-form sigmoid prediction path is identical to the unconstrained
 logistic; only the fit differs. The research scenario checks cover the study
 cohort and specified presets, rather than every possible API request.
 
-Presets clip adjusted feature values to the training range. For an input
-outside that range, clipping can reverse the requested direction: a "reduce
-BMI" preset can change BMI 17 to 18 if the training minimum is 18, and an
-"increase exercise" preset can lower an input above the training maximum.
-Missing intervention values also require assumptions. Consequently these API
-presets do not guarantee a non-increasing score for arbitrary inputs.
-Returned `changed_features` and score differences describe the actual scenario
-applied. Directional consistency does not establish a causal treatment effect.
+Presets clip proposed values to the training range, then preserve the favorable
+direction specified by the exporter's monotonic constraints. If a training
+bound would reverse the change, the current value is retained: BMI 17 stays 17
+when the training minimum is 18, and exercise above the training maximum is
+never reduced by an "increase exercise" preset. Training coverage still limits
+the validity of predictions outside the observed range.
+
+Missing intervention values remain missing and are skipped by the preset;
+the fitted preprocessor handles them identically for baseline and scenario
+scoring. Other observed features can still change in a combined preset.
+Returned `changed_features` lists the actual values used, including equal
+`from`/`to` values when a proposed update is blocked; skipped missing features
+are omitted. These guards apply to existing exported models without retraining.
+Directional consistency does not establish a causal treatment effect.
 
 ## 2. Run the API
 
@@ -115,8 +121,10 @@ with HTTP 422. Validation responses include each error's `type`, `loc`, and
 From the repository root, the public regression checks run with
 `python -m pytest tests/deployment -q` after installing `requirements-dev.txt`.
 They use synthetic inputs and isolated registries to check complete and partial
-model sets, model reloads, and finite-number validation across all prediction
-routes. They do not require private data or trained artifacts.
+model sets, model reloads, finite-number validation, and favorable preset
+directions for inputs within and outside training bounds across all prediction
+routes. They also verify that missing intervention values remain missing.
+They do not require private data or trained artifacts.
 
 ## 3. Docker
 

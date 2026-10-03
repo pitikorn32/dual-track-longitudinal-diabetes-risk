@@ -25,8 +25,21 @@ exclusion, exact-artifact safety joins, scenario clipping and derived-feature
 refresh, patient-bootstrap multiplicity, and runner argument handling.
 Deployment API checks also cover readiness for each variant's complete model
 set, removal of stale models during reload, and HTTP 422 responses for
-non-finite clinical and questionnaire values. These checks require no trained
-artifacts.
+non-finite clinical and questionnaire values. Preset checks cover favorable
+feature directions after clipping, inputs outside training bounds, unchanged
+missing values, and non-increasing scores from a synthetic monotonic scorer
+across all four intervention routes. These checks require no trained artifacts.
+
+The saved default serving models were also checked with synthetic requests
+across all 15 intervention configurations (five horizons and three history
+windows). Seven presets per configuration, tested with inputs within training
+bounds, outside those bounds, missing, and partly missing, produced **420
+scenarios with zero increases in unrounded predicted probability**. A
+representative fully observed input also produced identical responses before
+and after the guard across all 30 default screening and intervention
+configurations. These checks exercise
+serving behavior; they do not validate clinical effects or predictive accuracy
+outside the training range.
 
 ## Reference evaluation on the study cohort
 
