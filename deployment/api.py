@@ -72,7 +72,7 @@ from typing import Annotated, Any, Callable
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Path as PathParam
+from fastapi import FastAPI, HTTPException, Path as PathParam, Response
 from scipy import special
 
 from schemas import (
@@ -141,6 +141,7 @@ def _expected_keys() -> list[str]:
 
 
 def _load_all_models() -> None:
+    _models.clear()
     for key in _expected_keys():
         path = MODEL_DIR / f"{key}.joblib"
         if path.exists():
@@ -152,6 +153,7 @@ def _load_all_models() -> None:
 
 
 def _load_all_models_no_year() -> None:
+    _models_no_year.clear()
     if not MODEL_DIR_NO_YEAR.exists():
         print(
             f"INFO: no-Year model directory missing — {MODEL_DIR_NO_YEAR}. "
@@ -189,6 +191,7 @@ def _expected_keys_logistic_only() -> list[str]:
 
 
 def _load_all_models_logistic_only() -> None:
+    _models_logistic_only.clear()
     if not MODEL_DIR_LOGISTIC_ONLY.exists():
         print(
             f"INFO: logistic-only model directory missing — {MODEL_DIR_LOGISTIC_ONLY}. "
@@ -207,6 +210,7 @@ def _load_all_models_logistic_only() -> None:
 
 
 def _load_all_models_logistic_only_no_year() -> None:
+    _models_logistic_only_no_year.clear()
     if not MODEL_DIR_LOGISTIC_ONLY_NO_YEAR.exists():
         print(
             f"INFO: logistic-only no-Year model directory missing — "
@@ -547,13 +551,25 @@ def _risk_score(prob: float) -> float:
 # Routes
 # ---------------------------------------------------------------------------
 
-@app.get("/health")
-def health() -> dict[str, Any]:
-    expected = len(_expected_keys())
+def _registry_health(
+    models: dict[str, dict[str, Any]], expected_keys: list[str], response: Response,
+) -> dict[str, Any]:
+    """Report readiness only when this variant's full model set is loaded."""
+    missing = [key for key in expected_keys if key not in models]
+    if missing:
+        response.status_code = 503
     return {
-        "status": "ok",
-        "models_loaded": len(_models),
-        "expected": expected,
+        "status": "ok" if not missing else "models_incomplete" if models else "models_not_loaded",
+        "models_loaded": len(models),
+        "expected": len(expected_keys),
+        "missing_model_keys": missing,
+    }
+
+
+@app.get("/health")
+def health(response: Response) -> dict[str, Any]:
+    return {
+        **_registry_health(_models, _expected_keys(), response),
         "tracks": {
             "screening": {"family_per_horizon": SCREENING_FAMILY},
             "intervention": {"family_per_horizon": INTERVENTION_FAMILY},
@@ -687,14 +703,11 @@ def predict_interventions(req: InterventionRequest) -> InterventionResponse:
 # ---------------------------------------------------------------------------
 
 @app.get("/no_year/health")
-def health_no_year() -> dict[str, Any]:
-    expected = len(_expected_keys())
+def health_no_year(response: Response) -> dict[str, Any]:
     return {
-        "status": "ok" if _models_no_year else "models_not_loaded",
+        **_registry_health(_models_no_year, _expected_keys(), response),
         "variant": VARIANT_NO_YEAR,
         "year_features_excluded": ["Year", "Year_centered", "Year_centered_sq"],
-        "models_loaded": len(_models_no_year),
-        "expected": expected,
         "tracks": {
             "screening": {"family_per_horizon": SCREENING_FAMILY},
             "intervention": {"family_per_horizon": INTERVENTION_FAMILY},
@@ -841,13 +854,10 @@ def predict_interventions_no_year(req: InterventionRequest) -> InterventionRespo
 # ---------------------------------------------------------------------------
 
 @app.get("/logistic_only/health")
-def health_logistic_only() -> dict[str, Any]:
-    expected = len(_expected_keys_logistic_only())
+def health_logistic_only(response: Response) -> dict[str, Any]:
     return {
-        "status": "ok" if _models_logistic_only else "models_not_loaded",
+        **_registry_health(_models_logistic_only, _expected_keys_logistic_only(), response),
         "variant": VARIANT_LOGISTIC_ONLY_WITH_YEAR,
-        "models_loaded": len(_models_logistic_only),
-        "expected": expected,
         "tracks": {
             "screening": {"family_per_horizon": LOGISTIC_ONLY_SCREENING_FAMILY},
             "intervention": {"family_per_horizon": LOGISTIC_ONLY_INTERVENTION_FAMILY},
@@ -930,14 +940,11 @@ def predict_logistic_only(req: PredictRequest) -> PredictResponse:
 
 
 @app.get("/logistic_only/no_year/health")
-def health_logistic_only_no_year() -> dict[str, Any]:
-    expected = len(_expected_keys_logistic_only())
+def health_logistic_only_no_year(response: Response) -> dict[str, Any]:
     return {
-        "status": "ok" if _models_logistic_only_no_year else "models_not_loaded",
+        **_registry_health(_models_logistic_only_no_year, _expected_keys_logistic_only(), response),
         "variant": VARIANT_LOGISTIC_ONLY_NO_YEAR,
         "year_features_excluded": ["Year", "Year_centered", "Year_centered_sq"],
-        "models_loaded": len(_models_logistic_only_no_year),
-        "expected": expected,
         "tracks": {
             "screening": {"family_per_horizon": LOGISTIC_ONLY_SCREENING_FAMILY},
             "intervention": {"family_per_horizon": LOGISTIC_ONLY_INTERVENTION_FAMILY},
