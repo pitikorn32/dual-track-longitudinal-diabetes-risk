@@ -26,12 +26,35 @@ refresh, patient-bootstrap multiplicity, and runner argument handling.
 
 ## Reference evaluation on the study cohort
 
-The following results reevaluate saved predictions and trained models on
-identical test occasions across model families. They cover 28 screening
-configurations per horizon and 45 monotonic configurations in total. They do
-not represent a complete retraining of the pipeline or replace the results
-reported in the HealthCom paper. The original training environment for every
-saved model is not fully documented.
+The following results cover 28 screening configurations per horizon and 45
+monotonic configurations, evaluated on identical test occasions across model
+families. They were first checked using saved predictions and subsequently
+confirmed by a complete research-workflow rerun from the private source cohort.
+They describe the current implementation and dependencies; they do not replace
+the published results or establish every historical model's training environment.
+
+### Full research-workflow validation
+
+A fresh Python 3.12 environment on Linux installed `requirements-dev.txt` and
+passed `pip check`. In a separate checkout with empty output directories,
+`bash reproduce.sh --profile thesis --force --fail-fast` completed **52 steps
+with zero failures and zero skipped steps**. The thesis profile includes the
+HealthCom workflow, calendar-time ablation, and thesis supplements. Serving
+exports are a separate opt-in workflow.
+
+The fresh run reproduced all 15 modeling tables' values and the canonical
+patient assignments. All 140 screening rows matched the reference PR-AUC,
+ROC-AUC, and Brier values exactly. The intervention evaluation covered 45
+configurations and 315 scenario summaries, with zero unexpected increases
+across 1,968,057 directional checks. All eight publication figures were
+generated. The report recorded fit-time metadata for all 15 statistical
+Logistic fits and 30 screening-tree fits, with no missing records in that scope.
+
+All **41 tests passed** with the private cohort and rebuilt modeling tables.
+Without the private cohort, the public checks passed with 40 tests and one
+cohort-dependent export test skipped; the synthetic example also passed.
+PyArrow is included in the requirements because saved pandas modeling tables
+can contain Arrow-backed columns.
 
 The supplied cumulative outcome categories agree with the study cutoffs:
 non-DM ≤100, pre-DM >100 through 125, and DM >125 mg/dL. Questionnaire collection
@@ -131,13 +154,18 @@ and near zero from three years onward) match the monotonic comparison.
 These summaries concern different groups of models and should be identified
 separately when reporting an overall mean and horizon-specific changes.
 
+The fresh run with the current dependencies produced mean PR-AUC deltas
+(`no_year - baseline`) of -0.009396 for uncalibrated trees, -0.008604 for
+calibrated trees, and -0.005999 for monotonic models. These are current-run
+results, distinct from the original manuscript-supporting values above.
+
 ## Remaining limits
 
 The feature ablation removes the engineered terms listed in the methods guide;
 it does not recreate the earlier feature set used for the paper's ablation.
 Tree importance describes research refits rather than the original fitted
-trees. The calendar-time comparison uses saved ablation results, without a
-complete retraining for this evaluation.
+trees. The fresh calendar-time experiment validates the current implementation;
+it does not recreate the historical software environment.
 Questionnaire collection dates remain unverified; static lifestyle values are
 an explicit research assumption.
 
