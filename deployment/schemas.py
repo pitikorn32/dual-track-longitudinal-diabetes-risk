@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class ClinicalMeasurement(BaseModel):
     """One annual health checkup. All clinical fields are optional (null = not measured that year)."""
+    model_config = {"allow_inf_nan": False}
     FBS: float | None = Field(None, description="Fasting blood sugar (mg/dL).")
     BMI: float | None = Field(None, description="Body mass index (kg/m²).")
     Pulse: float | None = Field(None, description="Pulse rate (bpm).")
@@ -115,7 +116,7 @@ class PredictRequest(BaseModel):
             )
         return self
 
-    model_config = {"json_schema_extra": {
+    model_config = {"allow_inf_nan": False, "json_schema_extra": {
         "example": {
             "horizon_years": 3,
             "history_years": 5,

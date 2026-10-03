@@ -72,7 +72,9 @@ from typing import Annotated, Any, Callable
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Path as PathParam, Response
+from fastapi import FastAPI, HTTPException, Path as PathParam, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from scipy import special
 
 from schemas import (
@@ -253,6 +255,16 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Return serializable errors even when an invalid input contains NaN/inf."""
+    errors = [
+        {"type": error["type"], "loc": error["loc"], "msg": error["msg"]}
+        for error in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 # ---------------------------------------------------------------------------
