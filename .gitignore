@@ -241,3 +241,9 @@ deployment/deployment_metrics*.csv
 # Data and serialized-model blobs.
 *.pkl
 *.joblib
+
+# Paper website development and generated build artifacts.
+website/node_modules/
+website/dist/
+website/test-results/
+website/playwright-report/

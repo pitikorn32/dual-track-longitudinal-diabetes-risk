@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dual-Track Longitudinal Diabetes Risk · IEEE HealthCom 2026</title>
+  <meta name="description" content="A longitudinal framework for horizon-specific diabetes-risk screening and directionally consistent what-if scoring. IEEE HealthCom 2026 research by Khlaisamniang, Chaiteerakij, and Sirinara.">
+  <meta name="theme-color" content="#122840">
+  <link rel="canonical" href="https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Dual-Track Longitudinal Modeling of Diabetes Risk">
+  <meta property="og:description" content="One longitudinal foundation. Horizon-specific screening and directionally consistent what-if scoring.">
+  <meta property="og:url" content="https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/">
+  <meta property="og:image" content="https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/assets/images/study-pipeline.png">
+  <meta property="og:image:alt" content="The paper's end-to-end longitudinal diabetes-risk modeling framework.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="citation_title" content="Dual-Track Longitudinal Modeling of Diabetes Risk: Horizon-Specific Screening and Intervention-Safe Scoring">
+  <meta name="citation_author" content="Pitikorn Khlaisamniang">
+  <meta name="citation_author" content="Roongruedee Chaiteerakij">
+  <meta name="citation_author" content="Patthrarawalai Sirinara">
+  <meta name="citation_publication_date" content="2026">
+  <meta name="citation_conference_title" content="IEEE HealthCom">
+  <meta name="citation_pdf_url" content="https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/assets/healthcom-paper.pdf">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script src="site.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "name": "Dual-Track Longitudinal Modeling of Diabetes Risk: Horizon-Specific Screening and Intervention-Safe Scoring",
+    "author": [
+      {"@type": "Person", "name": "Pitikorn Khlaisamniang"},
+      {"@type": "Person", "name": "Roongruedee Chaiteerakij"},
+      {"@type": "Person", "name": "Patthrarawalai Sirinara"}
+    ],
+    "isPartOf": {"@type": "CreativeWork", "name": "IEEE HealthCom 2026"},
+    "url": "https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/",
+    "encoding": {"@type": "MediaObject", "contentUrl": "https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/assets/healthcom-paper.pdf", "encodingFormat": "application/pdf"},
+    "keywords": ["diabetes risk", "longitudinal modeling", "monotonic constraints", "risk screening"]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="wordmark" href="#top" aria-label="Dual-track research, back to top">
+        <img src="assets/favicon.svg" width="30" height="30" alt="">
+        <span>Dual-track <span class="wordmark-muted">research</span></span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#overview">Overview</a><a href="#method">Method</a><a href="#results">Results</a><a href="#resources">Resources</a>
+      </nav>
+      <a class="header-paper" href="assets/healthcom-paper.pdf">Paper <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero container" id="top" aria-labelledby="paper-title">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> IEEE HealthCom 2026 <span class="eyebrow-divider">/</span> Research paper</p>
+          <h1 id="paper-title">Dual-Track Longitudinal Modeling of Diabetes Risk<span class="title-subtitle">Horizon-Specific Screening and Intervention-Safe Scoring</span></h1>
+          <p class="hero-deck">One longitudinal foundation for two distinct tasks: <strong>ranking future risk</strong> and <strong>scoring favorable what-if changes</strong>.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="assets/healthcom-paper.pdf">Read the paper <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk">View code <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="#citation">Cite this work <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+        <aside class="hero-visual" aria-label="Two model tracks on one longitudinal foundation">
+          <div class="visual-kicker">A shared foundation</div>
+          <div class="visual-years" aria-hidden="true"><span>2005</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span>2016</span></div>
+          <div class="foundation"><span class="small-label">Longitudinal health checks</span><strong>6,892 patients</strong><span>Rolling patient-year predictions</span></div>
+          <div class="track-connector" aria-hidden="true"><span></span><span></span></div>
+          <div class="visual-tracks">
+            <div class="visual-track screening"><span class="track-letter">A</span><strong>Screening</strong><span>Which model ranks<br>future risk best?</span><div class="mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="visual-track monotonic"><span class="track-letter">B</span><strong>What-if scoring</strong><span>Do favorable changes<br>keep score direction?</span><svg viewBox="0 0 108 44" aria-hidden="true"><path d="M8 8h22v7h24v9h24v9h22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m94 27 7 6-7 6" fill="none" stroke="currentColor" stroke-width="3"/></svg></div>
+          </div>
+          <p class="visual-caption">Same cohort and split.<br>Different modeling requirements.</p>
+        </aside>
+      </div>
+      <div class="authors">
+        <p><strong>Pitikorn Khlaisamniang<sup>1,4</sup></strong><span>Roongruedee Chaiteerakij<sup>1,2</sup></span><span>Patthrarawalai Sirinara<sup>3</sup></span></p>
+        <p class="affiliation-summary">Chulalongkorn University · Looloo Technology · Bangkok, Thailand</p>
+        <details class="affiliations"><summary>Author affiliations</summary><ol><li>Digital and AI Technologies in Health Systems, Faculty of Medicine, Chulalongkorn University</li><li>Integrated Innovation and Digital Technologies Affairs, Faculty of Medicine, Chulalongkorn University</li><li>Department of Preventive and Social Medicine, Faculty of Medicine, Chulalongkorn University</li><li>Looloo Technology</li></ol></details>
+      </div>
+      <dl class="study-strip">
+        <div><dt>Patients</dt><dd>6,892</dd></div><div><dt>Annual records</dt><dd>12 <span>years</span></dd></div><div><dt>Forecast horizon</dt><dd>1–5 <span>years</span></dd></div><div><dt>History windows</dt><dd>1, 3, 5 <span>years</span></dd></div>
+      </dl>
+    </section>
+
+    <section class="section container" id="overview" aria-labelledby="overview-title">
+      <div class="section-intro"><p class="section-label">01 / Overview</p><h2 id="overview-title">Prediction and what-if scoring<br>ask different questions.</h2></div>
+      <div class="overview-grid">
+        <div class="abstract-copy">
+          <h3>Abstract</h3>
+          <p>Effective diabetes prevention relies on identifying metabolic risk during the pre-diagnostic window, yet existing prediction tools typically fix a single forecast horizon and often assume a single model can serve both population screening and patient counseling. This work introduced an end-to-end longitudinal diabetes-risk modeling pipeline developed from 12 years of annual health-check data from 6,892 patients at a tertiary hospital in Thailand (2005–2016).</p>
+          <p>We framed the task as a rolling patient-year classification, explicitly varying the prediction horizon (1 to 5 years) and historical input windows (1, 3, or 5 years) across biostatistical, tree-based, and survival model families. Our benchmarks revealed that no single model family dominated: tree-based models led at short horizons and biostatistical models at longer ones. Importantly, we demonstrated that ranking future risk and patient-facing what-if scoring were distinct operational tasks.</p>
+          <details class="abstract-rest"><summary>Continue reading the abstract</summary><p>To address this, we proposed a dual-track framework: a horizon-specific pure-prediction track for passive screening, and an “intervention-safe” monotonic track designed for patient-facing what-if simulations. The intervention-safe models preserved clinically plausible score directions under tested lifestyle-improvement scenarios while matching or exceeding pure-prediction performance at horizons up to four years. Across horizons the leading models reached ROC-AUC 0.80–0.83 with rank-1 PR-AUC lifts of 3.2–5.4× over the prevalence baseline, and patient-clustered bootstrap confidence intervals showed the tree and biostatistical leaders to be statistically indistinguishable at every horizon. This dual-track architecture bridged the gap between passive risk stratification and actionable clinical decision support. Code is publicly available at <a href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk">the project repository</a>.</p></details>
+        </div>
+        <aside class="finding-panel" aria-labelledby="takeaways-title">
+          <p class="small-label" id="takeaways-title">Three findings to take away</p>
+          <ol class="takeaways"><li><span>01</span><div><h3>No universal winner</h3><p>The nominal leading family changes with the forecast horizon; tree and statistical leaders remain close.</p></div></li><li><span>02</span><div><h3>History matters</h3><p>Longer clinical histories help the main direct-prediction finalists.</p></div></li><li><span>03</span><div><h3>Direction can be preserved</h3><p>Monotonic models match or exceed screening leaders at four of five horizons under the tested favorable scenarios.</p></div></li></ol>
+          <p class="panel-footnote">“Intervention-safe” describes the tested score direction. It does not establish clinical safety or treatment benefit.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="method-section" id="method" aria-labelledby="method-title">
+      <div class="container section">
+        <div class="section-intro"><p class="section-label">02 / Method</p><h2 id="method-title">One protocol. Two complementary tracks.</h2><p class="section-deck">Annual health checks become rolling prediction occasions, with explicit control of how far to look back and how far to predict.</p></div>
+        <div class="protocol-grid">
+          <div><span class="protocol-number">01</span><h3>Define the prediction occasion</h3><p>Use source-year records before first at-risk onset. The outcome combines pre-diabetes and diabetes, defined by cumulative maximum fasting blood sugar above 100 mg/dL.</p></div>
+          <div><span class="protocol-number">02</span><h3>Vary horizon and history</h3><p>Five horizons (N = 1–5) and three history windows (M = 1, 3, 5) yield 15 modeling tables from the same longitudinal cohort.</p></div>
+          <div><span class="protocol-number">03</span><h3>Compare on shared test rows</h3><p>A patient-level 60/20/20 train/calibration/test split and shared test-row intersection align comparisons across model families.</p></div>
+        </div>
+        <figure class="paper-figure">
+          <div class="figure-topline"><span>Figure 1 / Study framework</span><a class="figure-expand" href="assets/images/study-pipeline.png" data-figure="pipeline">Expand figure <span aria-hidden="true">↗</span></a></div>
+          <img src="assets/images/study-pipeline.png" width="1672" height="941" loading="lazy" alt="End-to-end study pipeline: longitudinal health checks from 6,892 patients become rolling tables across history windows and prediction horizons; tree, statistical, and survival models produce separate screening and monotonic what-if benchmarks.">
+          <figcaption>Original paper figure. The pipeline shares data engineering and patient assignment across both tracks. Diagram scores are illustrative; measured study results appear below. Directional constraints concern score behavior, rather than causal treatment effects.</figcaption>
+        </figure>
+        <div class="track-descriptions"><article><p class="track-tag"><span class="track-letter">A</span> Pure-prediction track</p><h3>Optimize the screening comparison.</h3><p>Biostatistical, tree-based, and survival models compete on future at-risk classification. PR-AUC is the primary ranking metric, with ROC-AUC and Brier score providing additional context.</p></article><article><p class="track-tag"><span class="track-letter teal">B</span> Intervention-safe track</p><h3>Constrain favorable score directions.</h3><p>Monotonic models are tested under lifestyle-improvement presets such as lower sugary-drink intake, more activity, and lower BMI. All benchmarked monotonic families passed the specified directional check.</p></article></div>
+      </div>
+    </section>
+
+    <section class="section container" id="results" aria-labelledby="results-title">
+      <div class="section-intro"><p class="section-label">03 / Published results</p><h2 id="results-title">The leading model changes<br>with the prediction horizon.</h2><p class="section-deck">The paper compares 28 configurations per horizon on identical test occasions. Monotonic leaders reach or exceed the screening frontier at horizons one through four.</p></div>
+      <div class="result-highlights"><div><strong>0.80–0.83</strong><span>Leading ROC-AUC across horizons</span></div><div><strong>3.2–5.4×</strong><span>Screening PR-AUC lift over prevalence</span></div><div><strong>4 of 5</strong><span>Horizons with monotonic PR-AUC at or above screening</span></div></div>
+      <div class="result-explorer" hidden>
+        <div class="explorer-heading"><h3>Explore a forecast horizon</h3><div class="horizon-buttons" role="group" aria-label="Prediction horizon"><button type="button" data-horizon="1" aria-pressed="true">1 year</button><button type="button" data-horizon="2" aria-pressed="false">2 years</button><button type="button" data-horizon="3" aria-pressed="false">3 years</button><button type="button" data-horizon="4" aria-pressed="false">4 years</button><button type="button" data-horizon="5" aria-pressed="false">5 years</button></div></div>
+        <div class="explorer-grid"><figure class="trend-chart"><svg id="results-chart" viewBox="0 0 640 310" role="img" aria-labelledby="chart-title chart-description"><title id="chart-title">Paper PR-AUC by prediction horizon</title><desc id="chart-description">Screening and monotonic PR-AUC increase across the five horizons, as does the prevalence baseline. Exact values are given in the results table.</desc></svg><figcaption><span class="legend-item screening-key">Screening</span><span class="legend-item monotonic-key">Monotonic</span><span class="legend-item baseline-key">Prevalence baseline</span></figcaption></figure>
+          <div class="horizon-detail" aria-live="polite" aria-atomic="true"><p class="small-label" id="horizon-label">1-year forecast · 5-year history</p><div class="score-row"><div><span>Screening leader</span><h4 id="screening-model">CatBoost</h4><strong id="screening-ap">0.2085</strong><small>PR-AUC</small></div><div><span>Monotonic leader</span><h4 id="monotonic-model">EBM</h4><strong id="monotonic-ap">0.2170</strong><small>PR-AUC</small></div></div><p class="delta-line"><span id="delta-ap">+0.0085</span> paper-reported PR-AUC difference</p><dl class="horizon-context"><div><dt>Prevalence baseline</dt><dd id="prevalence">3.86%</dd></div><div><dt>Screening lift</dt><dd id="lift">5.41×</dd></div><div><dt>Screening ROC-AUC</dt><dd id="roc">0.8297</dd></div><div><dt>Screening Brier</dt><dd id="brier">0.0335</dd></div></dl></div></div>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Published results table, scroll horizontally on small screens"><table id="results-table"><caption>Paper-reported leaders · five-year history (M = 5). Three-year screening uses Platt calibration; other screening leaders use raw probabilities.</caption><thead><tr><th scope="col">Horizon</th><th scope="col">Screening leader</th><th scope="col">PR-AUC</th><th scope="col">Monotonic leader</th><th scope="col">PR-AUC</th><th scope="col">Prevalence</th></tr></thead><tbody>
+        <tr data-horizon="1" data-delta="0.0085" data-lift="5.41" data-roc="0.8297" data-brier="0.0335"><th scope="row">1 year</th><td data-field="screening-model">CatBoost</td><td data-field="screening-ap">0.2085</td><td data-field="monotonic-model">EBM</td><td data-field="monotonic-ap">0.2170</td><td data-field="prevalence">3.86%</td></tr>
+        <tr data-horizon="2" data-delta="0.0157" data-lift="4.48" data-roc="0.8228" data-brier="0.0562"><th scope="row">2 years</th><td data-field="screening-model">Logistic</td><td data-field="screening-ap">0.3169</td><td data-field="monotonic-model">CatBoost</td><td data-field="monotonic-ap">0.3326</td><td data-field="prevalence">7.07%</td></tr>
+        <tr data-horizon="3" data-delta="0.0122" data-lift="3.86" data-roc="0.8157" data-brier="0.0761"><th scope="row">3 years</th><td data-field="screening-model">XGBoost</td><td data-field="screening-ap">0.3964</td><td data-field="monotonic-model">XGBoost</td><td data-field="monotonic-ap">0.4087</td><td data-field="prevalence">10.27%</td></tr>
+        <tr data-horizon="4" data-delta="0.0031" data-lift="3.51" data-roc="0.8097" data-brier="0.0921"><th scope="row">4 years</th><td data-field="screening-model">Logistic</td><td data-field="screening-ap">0.4727</td><td data-field="monotonic-model">CatBoost</td><td data-field="monotonic-ap">0.4758</td><td data-field="prevalence">13.46%</td></tr>
+        <tr data-horizon="5" data-delta="-0.0056" data-lift="3.20" data-roc="0.8048" data-brier="0.1075"><th scope="row">5 years</th><td data-field="screening-model">GEE</td><td data-field="screening-ap">0.5282</td><td data-field="monotonic-model">CatBoost</td><td data-field="monotonic-ap">0.5226</td><td data-field="prevalence">16.49%</td></tr>
+      </tbody></table></div>
+      <p class="results-note">Values and differences follow the paper’s reporting precision; differences and lifts were calculated before rounding. PR-AUC should be read against each horizon’s prevalence baseline.</p>
+      <div class="evidence-note"><span class="note-marker" aria-hidden="true">i</span><div><h3>Rankings are close; uncertainty matters.</h3><p>The 95% patient-clustered bootstrap interval for the best tree versus best statistical model includes zero at every horizon (2,000 replicates). A nominal first-place ranking does not establish a significant advantage.</p></div></div>
+      <details class="original-result-figure"><summary>View the original paper comparison figure</summary><figure class="paper-figure"><div class="figure-topline"><span>Figure 2 / Monotonic versus screening</span><a class="figure-expand" href="assets/images/track-comparison.png" data-figure="comparison">Expand figure <span aria-hidden="true">↗</span></a></div><img src="assets/images/track-comparison.png" width="2172" height="1014" loading="lazy" alt="Original paper bar chart comparing the best screening and monotonic model at five horizons. Paper-reported PR-AUC differences are +0.0085, +0.0157, +0.0122, +0.0031, and −0.0056."><figcaption>The best monotonic model matches or exceeds the pure-prediction leader at horizons one through four and trails slightly at five years, while passing the tested directional criterion.</figcaption></figure></details>
+      <p class="version-note"><strong>Paper results and current code.</strong> This page reports the camera-ready paper’s values. Software versions can affect current scores and ranks, including the three-year XGBoost result. See the <a href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk/blob/main/docs/VALIDATION.md">validation notes and known differences</a> when comparing a new run.</p>
+    </section>
+
+    <section class="limitations-section" id="limitations" aria-labelledby="limitations-title"><div class="container section"><div class="section-intro"><p class="section-label">04 / Interpretation</p><h2 id="limitations-title">What these findings establish—and where they stop.</h2></div><div class="limitations-grid"><article><span>01</span><h3>One observational cohort</h3><p>Data come from a single tertiary hospital in Thailand. External, multi-site validation is needed before generalizability can be established.</p></article><article><span>02</span><h3>Incomplete longitudinal records</h3><p>Irregular follow-up and informative missingness can bias evaluation. The shared cohort favors more complete prediction occasions; lifestyle responses are assumed time invariant.</p></article><article><span>03</span><h3>Direction is not causality</h3><p>Monotonic what-if scores preserve specified feature directions under tested scenarios. They do not estimate the causal benefit of a lifestyle intervention.</p></article><article><span>04</span><h3>Calibration can change</h3><p>Care environments and population characteristics can shift over time. Models used beyond the training period require monitoring and periodic recalibration or retraining.</p></article></div></div></section>
+
+    <section class="section container resources-section" id="resources" aria-labelledby="resources-title"><div class="section-intro"><p class="section-label">05 / Resources</p><h2 id="resources-title">Read, explore, and build on the work.</h2></div><div class="resource-links"><a href="assets/healthcom-paper.pdf"><span class="resource-icon" aria-hidden="true">PDF</span><div><h3>The paper</h3><p>Six-page camera-ready manuscript</p></div><span aria-hidden="true">↗</span></a><a href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk"><span class="resource-icon" aria-hidden="true">&lt;/&gt;</span><div><h3>Research code</h3><p>HealthCom workflow and thesis supplements</p></div><span aria-hidden="true">↗</span></a><a href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk/blob/main/docs/PUBLICATION.md"><span class="resource-icon" aria-hidden="true">N×M</span><div><h3>Methods and input schema</h3><p>Targets, splits, commands, and implementation details</p></div><span aria-hidden="true">↗</span></a></div><p class="data-note">The patient cohort is private and is not distributed. The repository includes the implementation and wholly synthetic examples; reproducing the study’s numerical results requires the original cohort.</p>
+      <div class="citation-block" id="citation"><div class="citation-heading"><div><p class="small-label">Reference</p><h3>Cite this work</h3></div><div class="citation-actions"><a href="assets/healthcom.bib" download>Download BibTeX <span aria-hidden="true">↓</span></a><button type="button" id="copy-citation" hidden>Copy BibTeX</button></div></div><pre tabindex="0" role="region" aria-label="BibTeX citation, scroll horizontally on small screens"><code id="bibtex">@inproceedings{khlaisamniang2026dualtrack,
+  title = {Dual-Track Longitudinal Modeling of Diabetes Risk:
+           Horizon-Specific Screening and Intervention-Safe Scoring},
+  author = {Khlaisamniang, Pitikorn and Chaiteerakij, Roongruedee
+            and Sirinara, Patthrarawalai},
+  booktitle = {IEEE HealthCom},
+  year = {2026},
+  url = {https://pitikorn32.github.io/dual-track-longitudinal-diabetes-risk/}
+}</code></pre><p id="copy-status" class="copy-status" role="status"></p></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><div><strong>Dual-track longitudinal diabetes risk</strong><p>IEEE HealthCom 2026 · Chulalongkorn University</p></div><p>Paper and reproduced figures © 2026 IEEE.<br><a href="https://github.com/pitikorn32/dual-track-longitudinal-diabetes-risk/blob/main/LICENSE">Research software: MIT License</a></p><a href="#top">Back to top <span aria-hidden="true">↑</span></a></div></footer>
+  <dialog id="figure-dialog" aria-labelledby="figure-dialog-title"><div class="dialog-topline"><h2 id="figure-dialog-title">Study framework</h2><button type="button" id="close-figure" aria-label="Close figure">Close <span aria-hidden="true">×</span></button></div><div class="dialog-image-scroll" tabindex="0" role="region" aria-label="Full-resolution figure, scroll with arrow keys"><img id="expanded-figure" alt=""></div><p>Scroll to inspect the original figure at full resolution.</p></dialog>
+</body>
+</html>

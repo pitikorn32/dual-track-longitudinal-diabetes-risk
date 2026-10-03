@@ -45,3 +45,6 @@ Average precision of the at-risk predictions across recall levels, used as the s
 
 **Retrospective benchmark leader**:
 The candidate with the highest reported test-set ranking metric among the compared configurations at a given horizon. Its selection and reported performance use the same held-out comparison, so it is not a separately evaluated model-selection procedure.
+
+**Published paper result**:
+A result reported in the camera-ready HealthCom manuscript. It describes that publication's analysis and can differ from results obtained with later software versions.
